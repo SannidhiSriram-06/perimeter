@@ -9,6 +9,7 @@
 [![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)](https://python.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
@@ -140,6 +141,8 @@ For detailed sprint breakdowns and task ownership, refer to [project_architectur
 
 ---
 
-## 📄 Academic Note
+## 📄 License & Academic Note
 
-This project is developed as an engineering capstone project focusing on auditable, data-sovereign telemetry correlation, graph-bounded blast-radius scoping, and automated on-call incident intelligence.
+This project is open source and available under the [MIT License](LICENSE). Anyone is free to view, fork, modify, distribute, and build upon this code.
+
+*Academic Note*: Perimeter is developed as an engineering capstone project focusing on auditable, data-sovereign telemetry correlation, graph-bounded blast-radius scoping, and automated on-call incident intelligence.
