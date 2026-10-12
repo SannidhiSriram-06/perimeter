@@ -15,7 +15,11 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR(100) NOT NULL,
     email VARCHAR(150) UNIQUE NOT NULL,
     team_id VARCHAR(50),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_user_id_format CHECK (
+        (role = 'admin' AND id ~ '^[0-9]{5}$') OR
+        (role = 'team_member' AND id ~ '^[0-9]{6}$')
+    )
 );
 
 -- ----------------------------------------------------------------------------
@@ -51,7 +55,8 @@ CREATE TABLE IF NOT EXISTS team_members (
     skills TEXT[] DEFAULT '{}',
     telegram_chat_id VARCHAR(50),
     is_on_leave BOOLEAN DEFAULT FALSE,
-    on_call_status BOOLEAN DEFAULT FALSE
+    on_call_status BOOLEAN DEFAULT FALSE,
+    CONSTRAINT uq_team_members_user_team UNIQUE (user_id, team_id)
 );
 
 -- ----------------------------------------------------------------------------
@@ -96,20 +101,20 @@ INSERT INTO teams (id, name, description) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- Seed Users:
--- 1 admin with 5-digit ID ('ADM01'), 3 team members with 6-digit IDs ('USR101', 'USR102', 'USR103')
+-- 1 admin with 5-digit numeric ID ('10001'), 3 team members with 6-digit numeric IDs ('100101', '100102', '100103')
 INSERT INTO users (id, role, name, email, team_id) VALUES
-    ('ADM01', 'admin', 'Alex Admin', 'alex.admin@perimeter.internal', 'team-core-platform'),
-    ('USR101', 'team_member', 'Dev Dave', 'dave@perimeter.internal', 'team-payments'),
-    ('USR102', 'team_member', 'Sara Senior', 'sara@perimeter.internal', 'team-payments'),
-    ('USR103', 'team_member', 'Ken Platform', 'ken@perimeter.internal', 'team-core-platform')
+    ('10001', 'admin', 'Alex Admin', 'alex.admin@perimeter.internal', 'team-core-platform'),
+    ('100101', 'team_member', 'Dev Dave', 'dave@perimeter.internal', 'team-payments'),
+    ('100102', 'team_member', 'Sara Senior', 'sara@perimeter.internal', 'team-payments'),
+    ('100103', 'team_member', 'Ken Platform', 'ken@perimeter.internal', 'team-core-platform')
 ON CONFLICT (id) DO NOTHING;
 
--- Seed Team Members
+-- Seed Team Members (idempotent with UNIQUE(user_id, team_id))
 INSERT INTO team_members (user_id, team_id, seniority, skills, telegram_chat_id, is_on_leave, on_call_status) VALUES
-    ('USR101', 'team-payments', 'mid', ARRAY['python', 'postgresql', 'fastapi'], 'chat_101', FALSE, TRUE),
-    ('USR102', 'team-payments', 'lead', ARRAY['go', 'distributed-systems', 'payments'], 'chat_102', FALSE, FALSE),
-    ('USR103', 'team-core-platform', 'senior', ARRAY['kubernetes', 'terraform', 'opentelemetry'], 'chat_103', FALSE, TRUE)
-ON CONFLICT DO NOTHING;
+    ('100101', 'team-payments', 'mid', ARRAY['python', 'postgresql', 'fastapi'], 'chat_101', FALSE, TRUE),
+    ('100102', 'team-payments', 'lead', ARRAY['go', 'distributed-systems', 'payments'], 'chat_102', FALSE, FALSE),
+    ('100103', 'team-core-platform', 'senior', ARRAY['kubernetes', 'terraform', 'opentelemetry'], 'chat_103', FALSE, TRUE)
+ON CONFLICT (user_id, team_id) DO NOTHING;
 
 -- Seed Sample Services: checkout-service, payment-gateway, inventory-service
 INSERT INTO services (id, name, owning_team_id, tier) VALUES
