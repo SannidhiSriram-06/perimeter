@@ -1,5 +1,5 @@
 """Service dependency graph package for blast-radius calculation."""
 
-from src.graph.service_graph import ServiceDependencyGraph, ServiceEdge, BlastRadiusReport
+from .service_graph import BlastRadiusReport, ServiceDependencyGraph, ServiceEdge
 
 __all__ = ["ServiceDependencyGraph", "ServiceEdge", "BlastRadiusReport"]

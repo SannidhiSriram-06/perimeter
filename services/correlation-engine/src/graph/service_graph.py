@@ -60,7 +60,13 @@ class ServiceDependencyGraph:
             source_service: Name of caller service.
             target_service: Name of callee service.
             call_count: Number of calls to add/increment for this edge.
+
+        Raises:
+            ValueError: If call_count is less than 1.
         """
+        if call_count < 1:
+            raise ValueError(f"call_count must be at least 1, got {call_count}")
+
         if self._graph.has_edge(source_service, target_service):
             self._graph[source_service][target_service]["call_count"] += call_count
         else:
@@ -81,12 +87,10 @@ class ServiceDependencyGraph:
 
         Returns:
             Ordered list of reachable services starting with `origin_service`.
-            Returns an empty list if `origin_service` is not in the graph.
+            Returns an empty list if `origin_service` is not in the graph or
+            if max_depth is negative.
         """
-        if not self._graph.has_node(origin_service):
-            return []
-
-        if max_depth < 0:
+        if not self._graph.has_node(origin_service) or max_depth < 0:
             return []
 
         visited: Set[str] = {origin_service}
@@ -110,7 +114,14 @@ class ServiceDependencyGraph:
     def get_blast_radius_report(
         self, origin_service: str, max_depth: int = 3
     ) -> BlastRadiusReport:
-        """Return a Pydantic-validated BlastRadiusReport for the origin service."""
+        """Return a Pydantic-validated BlastRadiusReport for the origin service.
+
+        Raises:
+            ValueError: If max_depth is negative.
+        """
+        if max_depth < 0:
+            raise ValueError(f"max_depth must be non-negative, got {max_depth}")
+
         impacted = self.get_blast_radius(origin_service=origin_service, max_depth=max_depth)
         return BlastRadiusReport(
             origin_service=origin_service,
