@@ -62,3 +62,7 @@ htmlcov/
 *.tfstate.*
 .terraform/
 .terraform.lock.hcl
+
+
+#Ignore vscode AI rules
+.github/instructions/codacy.instructions.md
