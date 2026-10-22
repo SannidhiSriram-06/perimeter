@@ -21,7 +21,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install -r requirements.txt
+      - run: pip install --only-binary=:all: -r requirements.txt
       - run: python -m pytest tests/ -q
 
   bff-server:
@@ -37,7 +37,7 @@ jobs:
           node-version: "20"
           cache: npm
           cache-dependency-path: services/bff-server/package-lock.json
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - run: npm run build
 
   compose-config:
