@@ -1,4 +1,8 @@
-"""Unit and integration tests for ServiceDependencyGraph and blast-radius BFS."""
+"""Unit and integration tests for ServiceDependencyGraph and blast-radius BFS.
+
+Execution:
+    $ cd services/correlation-engine && python3 -m pytest tests/
+"""
 
 import unittest
 from src.graph.service_graph import ServiceDependencyGraph, BlastRadiusReport
