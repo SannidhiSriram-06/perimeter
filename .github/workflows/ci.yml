@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+jobs:
+  correlation-engine:
+    name: Correlation engine tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/correlation-engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install --only-binary=:all: -r requirements.txt
+      - run: python -m pytest tests/ -q
+
+  bff-server:
+    name: BFF server build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/bff-server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: services/bff-server/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+
+  compose-config:
+    name: Validate docker-compose file
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose -f deploy/docker-compose.yml config -q
