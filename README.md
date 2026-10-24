@@ -1,148 +1,115 @@
-# Perimeter 🛡️
+# Perimeter
 
-> **Self-Hosted, Auditable Incident Correlation & On-Call Intelligence for Kubernetes**  
-> *Watching every edge of your infrastructure, from inside it.*
+[![CI](https://github.com/SannidhiSriram-06/perimeter/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/SannidhiSriram-06/perimeter/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
-[![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-F5A800?logo=opentelemetry&logoColor=white)](https://opentelemetry.io/)
-[![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?logo=prometheus&logoColor=white)](https://prometheus.io/)
-[![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)](https://python.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
-[![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+Self-hosted incident correlation and on-call routing for Kubernetes. Perimeter traces the real dependency chain behind an alert, drafts a root-cause report for a human to review, and pages the right responders. It runs entirely inside your cluster, so telemetry never leaves your infrastructure.
 
----
+> Watching every edge of your infrastructure, from inside it.
 
-## 📌 Problem Overview
+## Why
 
-When a microservice fails in production, two critical bottlenecks emerge:
+- **Faster triage.** Engineers often spend 20–40 minutes digging through logs, metrics and traces for an incident. Perimeter walks OpenTelemetry trace edges from the alerting service, so only causally linked services are considered.
+- **Auditable.** Blast-radius scoping is a deterministic graph traversal. Every "why we looked at this service" decision can be traced.
+- **Data sovereignty.** No per-seat SaaS tier. Bring your own LLM key, or use a self-hosted model.
 
-1. **20–40 minutes wasted on manual triage**: Engineers dig through siloed logs, metrics, and distributed traces. Traditional tools correlate based on broad time windows, dragging in unrelated noisy signals rather than tracing real causal chains.
-2. **Static, blunt escalation lists**: Paging systems follow static rosters that ignore actual service ownership, skill profiles, seniority, and availability/leave status.
+## How it works
 
-### The SaaS Bottleneck
-Commercial solutions (PagerDuty Advance, Datadog Watchdog, Dynatrace Davis AI) are closed-source, carry steep per-seat **"AI taxes"** (~$415+/user/month on top of base tiers), and are **SaaS-only**. For regulated industries (BFSI, government, healthcare), routing raw production telemetry to external cloud services violates data sovereignty mandates.
+```mermaid
+flowchart LR
+    Prom[Prometheus alert] --> BFF[Alert webhook<br/>BFF]
+    OTel[OpenTelemetry spans] --> Graph[Blast-radius BFS]
+    Graph --> Comp[Signal compressor]
+    BFF --> Comp
+    Comp --> LLM[LLM draft]
+    LLM --> Check[Fact checker]
+    Check --> Dash[Dashboard review]
+    Router[On-call router] --> Tele[Telegram]
 
----
-
-## 💡 Solution: Perimeter
-
-**Perimeter** is a self-hosted, data-sovereign alternative that runs 100% inside your Kubernetes cluster:
-
-- 🔍 **Deterministic Blast-Radius Scoping**: Walks OpenTelemetry trace edges using Breadth-First Search (BFS) starting from the alerting service, isolating only causally linked microservices.
-- 📉 **Budget-Aware Signal Compression**: Ranks telemetry by anomaly severity and graph proximity, trimming hundreds of signals into a compact context (~40 high-value items) fitting strict LLM token budgets.
-- 🤖 **Auditable AI Postmortems**: Calls an LLM (`temperature=0`, strict JSON schema) to generate a first-pass root-cause hypothesis and postmortem draft.
-- 🛡️ **Zero-Hallucination Fact Checker**: Deterministically validates that every service, metric, and anomaly cited by the LLM exists in the provided context before publishing.
-- 📱 **Intelligent On-Call Router**: Evaluates team ownership, skills, seniority, and leave status to page a balanced responder pair (e.g., 1 Senior SRE + 1 Junior engineer) via Telegram.
-- ⏱️ **Sub-90-Second Resolution Loop**: From Prometheus alert to a verified, human-actionable root-cause draft.
-
----
-
-## 🏗️ Architecture
-
-```
-                                  +-------------------+
-                                  |    K8s Cluster    |
-                                  |  (Microservices)  |
-                                  +---------+---------+
-                                            |
-                      +---------------------+---------------------+
-                      |                                           |
-             [OpenTelemetry Spans]                     [Prometheus Alerts/Metrics]
-                      |                                           |
-                      v                                           v
-       +-------------------------------+           +-------------------------------+
-       |    Dependency Graph Builder   |           |         Alert Webhook         |
-       |  (Deterministic BFS Traversal)|           |           (Node BFF)          |
-       +---------------+---------------+           +---------------+---------------+
-                       |                                           |
-                       +---------------------+---------------------+
-                                             |
-                                             v
-                              +-------------------------------+
-                              |        Signal Compressor      |
-                              |   (Rank & Trim under Budget)  |
-                              +---------------+---------------+
-                                             |
-                       +---------------------+---------------------+
-                       |                                           |
-                       v                                           v
-        +-----------------------------+             +-----------------------------+
-        |        LLM API Engine       |             |        On-Call Router       |
-        |  (Schema-Constrained Root-  |             |  (Skills / Seniority /      |
-        |   Cause & Postmortem Draft) |             |   Availability / Leave)     |
-        +--------------+--------------+             +--------------+--------------+
-                       |                                           |
-                       v                                           v
-        +-----------------------------+             +-----------------------------+
-        |    Fact-Checking Validator  |             |      Telegram Alert Bot     |
-        | (Anti-Hallucination Filter) |             |  (Dispatches top responders)|
-        +--------------+--------------+             +-----------------------------+
-                       |
-                       v
-        +-----------------------------+
-        |      React Dashboard        |
-        |  - 5-digit: Admin View      |
-        |  - 6-digit: Team View       |
-        +-----------------------------+
+    classDef built fill:#dcfce7,stroke:#16a34a,color:#14532d
+    classDef planned fill:#f1f5f9,stroke:#64748b,stroke-dasharray:4 3,color:#334155
+    class BFF,Graph built
+    class Comp,LLM,Check,Dash,Router,Tele planned
 ```
 
----
+Green components exist in the repository today. Grey components are planned. See [project_architecture_and_roadmap.md](project_architecture_and_roadmap.md) for the full design.
 
-## ⚡ Target 90-Second Incident Lifecycle Walkthrough
+## Status
 
-*The following sequence outlines the target design benchmark from alert firing to verified postmortem:*
-
-| Time | Event |
+| Component | Status |
 | :--- | :--- |
-| **`T+00s`** | Prometheus fires alert: `checkout-service` P95 latency > 2s. |
-| **`T+02s`** | Graph Builder performs BFS across trace edges: identifies blast radius (`checkout-service` → `payment-gateway` → `inventory-service`). Unrelated failing services are pruned. |
-| **`T+04s`** | Signal Compressor ranks telemetry signals (logs, anomalous metric deviations, and trace spans) down to a high-value context (~40 signals) fitted to the LLM token budget. |
-| **`T+07s`** | LLM generates structured root-cause hypothesis; Fact-Checking Validator confirms all mentioned services exist in telemetry context. |
-| **`T+08s`** | On-Call Router scores Team Directory and dispatches Telegram notification to a primary SRE owner and an available junior engineer. |
-| **`T+55s`** | Responder opens React Dashboard, reviews evidence, makes any minor edits, and marks the postmortem final.
+| Service dependency graph and BFS blast radius | Built, tested |
+| Mock OpenTelemetry traces and alert fixtures | Built |
+| Alert webhook endpoint (BFF) | Built, accepts and logs alerts |
+| Local PostgreSQL schema and seed data | Built |
+| CI: engine tests, BFF build, compose validation | Built |
+| Signal compressor (rank and trim to token budget) | Planned |
+| LLM root-cause draft and fact-checking validator | Planned |
+| IAM role lookup (5-digit admin, 6-digit team) | Planned |
+| React dashboards | Planned |
+| On-call router and Telegram bot | Planned |
+| Chaos fault injection and accuracy benchmark | Planned |
+| Terraform, Helm, ArgoCD deployment | Planned |
 
----
+## Quick start
 
-## 🧰 Tech Stack
+Requirements: Python 3.11+, Node.js 20+, Docker with Compose.
 
-| Layer | Core Technologies | Planned & Extended Integrations |
-| :--- | :--- | :--- |
-| **Compute & Orchestration** | Kubernetes (Minikube local dev, AWS EKS), Docker | Helm |
-| **Service Graph & Traces** | OpenTelemetry (Distributed Traces & Spans) | Istio / Service Mesh topology |
-| **Metrics & Alerting** | Prometheus, Alertmanager, Grafana | CloudWatch |
-| **Core Correlation Engine** | Python (NetworkX / Graph BFS, NumPy anomaly scoring) | Pydantic, vLLM / Ollama |
-| **Backend & BFF** | Node.js / Fastify or Express (REST API, Webhooks, Telegram Bot) | TypeScript, Prisma/Kysely |
-| **Frontend UI** | React (Vite), TailwindCSS (Role-based Admin & Team views) | Cytoscape / Graph visualization |
-| **Databases** | PostgreSQL (IAM, Team Directory, Incidents) | Local Event Store / DynamoDB |
-| **Chaos & Validation** | Chaos Mesh (Synthetic Fault Injection) | Automated Evaluation Harness |
-| **CI/CD & IaC** | GitHub Actions | Terraform |
+Run the correlation engine tests:
 
----
+```bash
+cd services/correlation-engine
+pip install -r requirements.txt
+python3 -m pytest tests/
+```
 
-## 🔐 IAM & Authorization Model
+Run the demo (mock telemetry summary):
 
-Perimeter implements server-side role resolution for every request:
-- **Admin Role (5-digit ID)**: Complete cluster visibility, cross-service inspection, team directory management, and leave tracking.
-- **Team Member Role (6-digit ID)**: Scoped visibility; users inspect only services and incidents owned by their team.
-- **Enumeration Protection**: Generic authentication error on failure; never reveals whether an ID pattern or identity exists.
+```bash
+./scripts/demo.sh
+```
 
----
+Start the local PostgreSQL stack:
 
-## 🚀 Delivery Roadmap
+```bash
+cp .env.example .env
+docker compose -f deploy/docker-compose.yml up -d
+```
 
-For detailed sprint breakdowns and task ownership, refer to [project_architecture_and_roadmap.md](./project_architecture_and_roadmap.md).
+See [deploy/README.md](deploy/README.md) for the database details.
 
-- **Sprint 1 (Days 1–5)**: Full Team Kickoff, Monorepo Setup, PostgreSQL Schema, Mock Telemetry.
-- **Sprint 2 (Days 6–18)**: Core Module Builds (BFS Graph Engine, Signal Compressor, IAM/BFF, Chaos Harness).
-- **Sprint 3 (Days 19–30)**: Integration & End-to-End Pipeline Wireup (Alert → BFS → LLM → Telegram → UI).
-- **Sprint 4 (Days 31–40)**: Chaos Fault Injection & Ground-Truth Accuracy Benchmarking.
-- **Final Sprint (Days 41–45)**: EKS Live Demonstration, Evaluation Write-up, and Capstone Deliverables.
+Build the alert webhook service:
 
----
+```bash
+cd services/bff-server
+npm ci
+npm run build
+```
 
-## 📄 License & Academic Note
+## Repository layout
 
-This project is open source and available under the [MIT License](LICENSE). Anyone is free to view, fork, modify, distribute, and build upon this code.
+```
+services/
+  correlation-engine/   Python: graph, BFS blast radius, mock telemetry
+  bff-server/           Node.js: alert webhook and API gateway
+deploy/
+  docker-compose.yml    Local PostgreSQL
+  db/init.sql           Schema and seed data
+scripts/
+  demo.sh               One-command demo
+.github/                CI workflow and CODEOWNERS
+```
 
-*Academic Note*: Perimeter is developed as an engineering capstone project focusing on auditable, data-sovereign telemetry correlation, graph-bounded blast-radius scoping, and automated on-call incident intelligence.
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch model, pull request rules and commit format.
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for how to report vulnerabilities.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
+
+*Academic note:* Perimeter is an engineering capstone project. Its accuracy claims are measured in a controlled, self-injected fault environment, not in production.
