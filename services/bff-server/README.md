@@ -99,3 +99,24 @@ curl -X POST http://localhost:3001/api/v1/alerts/webhook \
   "alert_count": 1
 }
 ```
+
+## Auth and Team Directory
+
+Requires `DATABASE_URL` and `AUTH_SECRET` (see `.env.example`). The database must have `deploy/db/init.sql` loaded.
+
+| Method | Path | Who | Purpose |
+| :--- | :--- | :--- | :--- |
+| POST | `/api/v1/auth/login` | anyone | Body `{ "id": "10001" }`. Returns a token. Unknown or malformed IDs get the same 401. |
+| GET | `/api/v1/teams` | signed in | Admins see all teams. Team members see their own team. |
+| GET | `/api/v1/teams/:teamId/members` | admin or that team | Members of a team. |
+| GET | `/api/v1/members/:userId` | admin or same team | One member's profile. |
+| PATCH | `/api/v1/members/:userId/status` | admin only | Update `is_on_leave`, `on_call_status`, `seniority`, `skills`. |
+
+Send the token as `Authorization: Bearer <token>`. The role is read from the database on every request, not trusted from the token.
+
+## Tests
+
+```bash
+npm test                                         # unit tests only
+TEST_DATABASE_URL=postgres://... npm test        # also runs API tests against a seeded database
+```
