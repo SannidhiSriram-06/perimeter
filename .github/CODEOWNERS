@@ -1,0 +1,27 @@
+# Each path's owner is requested as a reviewer on PRs that touch it.
+# Ownership follows the roles in TEAM_ROLES.txt.
+
+# Default: Sriram reviews anything not claimed below
+*                                   @SannidhiSriram-06
+
+# Data and databases (David)
+/deploy/db/                         @DavidParantha
+/services/correlation-engine/       @DavidParantha
+
+# Backend and IAM (Jyothi)
+/services/bff-server/               @JyothiSwaroop005
+
+# Frontend and dashboards (Manmitha)
+/services/dashboard/                @Manmitha03
+
+# On-call router and bot (Vivek)
+/services/correlation-engine/src/router/  @VivekSana
+
+# Testing and evaluation (Goutham)
+/evaluation/                        @GouthammLahar
+
+# Cloud, infra, CI and AI (Sriram)
+/.github/                           @SannidhiSriram-06
+/deploy/terraform/                  @SannidhiSriram-06
+/deploy/k8s/                        @SannidhiSriram-06
+/services/correlation-engine/src/llm/ @SannidhiSriram-06
