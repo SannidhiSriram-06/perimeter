@@ -1,0 +1,15 @@
+# kube-prometheus-stack values for Minikube. Small footprint for a laptop.
+prometheus:
+  prometheusSpec:
+    retention: 2d
+    resources:
+      requests: { cpu: 100m, memory: 300Mi }
+      limits: { memory: 600Mi }
+grafana:
+  adminPassword: perimeter-dev
+  # 256Mi was OOM-killed on Grafana 12; keep the limit high enough to start.
+  resources:
+    requests: { cpu: 100m, memory: 384Mi }
+    limits: { memory: 768Mi }
+alertmanager:
+  enabled: false
