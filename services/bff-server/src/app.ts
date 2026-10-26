@@ -35,7 +35,9 @@ export function createApp({ pool, authSecret }: AppDeps) {
     }
 
     console.log(
-      `[${new Date().toISOString()}] [Alert Ingestion] Received webhook with ${alerts.length} alert(s):`,
+      '[%s] [Alert Ingestion] Received webhook with %d alert(s): %s',
+      new Date().toISOString(),
+      alerts.length,
       JSON.stringify(req.body, null, 2)
     );
 
