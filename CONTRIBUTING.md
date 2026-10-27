@@ -21,6 +21,14 @@ No other branches are allowed on the remote. GitHub blocks creating them.
 
 Required checks must pass before merge: the correlation engine tests, the BFF build, and docker-compose validation.
 
+Other automated checks run on every pull request and weekly:
+
+- Lint: ruff (Python), shellcheck (scripts), actionlint (workflow files).
+- Security: dependency review, `npm audit`, `pip-audit`, bandit, and CodeQL (set up in repository settings, not in a workflow file).
+- Coverage: the engine tests fail below 85% coverage.
+
+Run the same checks locally with `ruff check services/correlation-engine` and `cd services/bff-server && npm audit --omit=dev`.
+
 ## Releases
 
 When `develop` is stable, the repository owner opens a pull request from `develop` into `main` and merges it. No extra approval is needed for this step, because the `develop` changes were already approved.

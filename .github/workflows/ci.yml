@@ -9,6 +9,11 @@ on:
 permissions:
   contents: read
 
+# A newer push to the same branch cancels the older run, which keeps usage low.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   correlation-engine:
     name: Correlation engine tests
@@ -22,7 +27,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: "pip install --only-binary=:all: -r requirements.txt"
-      - run: python -m pytest tests/ -q
+      - run: python -m pytest tests/ -q --cov=src --cov-report=term-missing --cov-fail-under=85
 
   bff-server:
     name: BFF server build
@@ -66,3 +71,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker compose -f deploy/docker-compose.yml config -q
+
+  lint:
+    name: Lint (ruff, shellcheck, actionlint)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --only-binary=:all: ruff==0.17.3
+      - run: ruff check services/correlation-engine
+      - run: shellcheck scripts/*.sh deploy/k8s/up.sh
+      - run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color
