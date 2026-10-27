@@ -8,7 +8,7 @@ Working Command to Run:
     cd services/correlation-engine && python -m src.mock
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 # -----------------------------------------------------------------------------
 # Synthetic Trace Graph Definitions

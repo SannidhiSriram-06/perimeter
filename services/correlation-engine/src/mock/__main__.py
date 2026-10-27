@@ -1,52 +1,16 @@
 """CLI runner for mock OpenTelemetry telemetry and synthetic alert fixtures.
 
-Notice regarding directory naming:
-    The directory name `services/correlation-engine` contains a hyphen, which is not a valid
-    Python identifier. Therefore, `python -m services.correlation-engine.src.mock` cannot be
-    imported directly as a module name from the repository root.
-
-Working Command to Run:
+The directory `services/correlation-engine` has a hyphen, so it is not importable as a
+package; run from inside it:
     cd services/correlation-engine && python -m src.mock
-
-Alternative Direct Invocation:
-    python services/correlation-engine/src/mock/__main__.py
 """
 
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 from typing import Any, Dict, List
 
-# Ensure parent search paths are added so execution succeeds from any directory
-_current_dir = Path(__file__).resolve().parent
-_src_dir = _current_dir.parent
-_engine_dir = _src_dir.parent
-
-if str(_engine_dir) not in sys.path:
-    sys.path.insert(0, str(_engine_dir))
-if str(_src_dir) not in sys.path:
-    sys.path.insert(0, str(_src_dir))
-
-try:
-    from src.mock.fixtures import (
-        SYNTHETIC_TRACES,
-        get_sample_alert_payload,
-        get_sample_trace_spans,
-    )
-except ImportError:
-    try:
-        from mock.fixtures import (
-            SYNTHETIC_TRACES,
-            get_sample_alert_payload,
-            get_sample_trace_spans,
-        )
-    except ImportError:
-        from fixtures import (  # type: ignore
-            SYNTHETIC_TRACES,
-            get_sample_alert_payload,
-            get_sample_trace_spans,
-        )
+from .fixtures import SYNTHETIC_TRACES, get_sample_alert_payload, get_sample_trace_spans
 
 
 def print_summary_statistics() -> None:

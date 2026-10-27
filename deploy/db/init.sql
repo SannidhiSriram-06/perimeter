@@ -3,9 +3,6 @@
 -- Sprint 1 Database Initialization
 -- ============================================================================
 
--- Ensure uuid-ossp / pgcrypto is available for gen_random_uuid()
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-
 -- ----------------------------------------------------------------------------
 -- 1. Users Table
 -- ----------------------------------------------------------------------------
@@ -86,7 +83,6 @@ CREATE TABLE IF NOT EXISTS incidents (
 -- Indexes on frequently queried foreign keys
 -- ----------------------------------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_services_owning_team_id ON services(owning_team_id);
-CREATE INDEX IF NOT EXISTS idx_team_members_user_id ON team_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_team_members_team_id ON team_members(team_id);
 CREATE INDEX IF NOT EXISTS idx_incidents_alert_service_id ON incidents(alert_service_id);
 

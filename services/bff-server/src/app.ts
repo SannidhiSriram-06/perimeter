@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import cors from 'cors';
 import { Pool } from 'pg';
 import { authRouter } from './auth/routes';
@@ -38,7 +38,7 @@ export function createApp({ pool, authSecret }: AppDeps) {
       '[%s] [Alert Ingestion] Received webhook with %d alert(s): %s',
       new Date().toISOString(),
       alerts.length,
-      JSON.stringify(req.body, null, 2)
+      JSON.stringify(req.body)
     );
 
     return res.status(202).json({
@@ -49,6 +49,13 @@ export function createApp({ pool, authSecret }: AppDeps) {
 
   app.use('/api/v1/auth', authRouter(pool, authSecret));
   app.use('/api/v1', requireAuth(pool, authSecret), teamsRouter(pool));
+
+  // Last, so rejected handlers (e.g. database down) get a JSON 500 instead of Express's HTML stack trace.
+  app.use((err: Error & { status?: number }, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status && err.status < 500 ? err.status : 500;
+    if (status === 500) console.error('Unhandled error:', err.message);
+    res.status(status).json({ error: status === 500 ? 'Internal Server Error' : err.message });
+  });
 
   return app;
 }

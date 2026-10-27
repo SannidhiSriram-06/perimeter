@@ -2,23 +2,19 @@ import { createHmac, timingSafeEqual } from 'crypto';
 
 export interface SessionClaims {
   sub: string;
-  role: 'admin' | 'team_member';
   exp: number;
 }
 
 const TOKEN_TTL_SECONDS = 8 * 60 * 60;
 
-const b64url = (input: Buffer | string): string =>
-  Buffer.from(input).toString('base64url');
-
 function sign(payload: string, secret: string): string {
   return createHmac('sha256', secret).update(payload).digest('base64url');
 }
 
-/** Issues a signed token. Role is carried for convenience only: it is re-read from the DB on every request. */
-export function issueToken(sub: string, role: SessionClaims['role'], secret: string, now = Date.now()): string {
-  const claims: SessionClaims = { sub, role, exp: Math.floor(now / 1000) + TOKEN_TTL_SECONDS };
-  const body = b64url(JSON.stringify(claims));
+/** Issues a signed token. It carries no role: role and team are read from the DB on every request. */
+export function issueToken(sub: string, secret: string, now = Date.now()): string {
+  const claims: SessionClaims = { sub, exp: Math.floor(now / 1000) + TOKEN_TTL_SECONDS };
+  const body = Buffer.from(JSON.stringify(claims)).toString('base64url');
   return `${body}.${sign(body, secret)}`;
 }
 
