@@ -48,15 +48,6 @@ class ServiceDependencyGraph:
         """Access the underlying networkx DiGraph instance."""
         return self._graph
 
-    @property
-    def services(self) -> List[str]:
-        """Return a list of all known services in the graph."""
-        return list(self._graph.nodes())
-
-    def has_service(self, service_name: str) -> bool:
-        """Check if a service node exists in the graph."""
-        return self._graph.has_node(service_name)
-
     def add_trace_edge(
         self, source_service: str, target_service: str, call_count: int = 1
     ) -> None:
