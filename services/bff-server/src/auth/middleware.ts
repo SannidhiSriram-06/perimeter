@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { Pool } from 'pg';
 import { verifyToken } from './token';
-import { wrap } from '../http';
+import { unauthorized, wrap } from '../http';
 
 export interface CurrentUser {
   id: string;
@@ -27,17 +27,13 @@ export function requireAuth(pool: Pool, secret: string) {
     const header = req.headers.authorization ?? '';
     const token = header.startsWith('Bearer ') ? header.slice(7) : '';
     const claims = token ? verifyToken(token, secret) : null;
-    if (!claims) {
-      return res.status(401).json({ error: 'Unauthorized', message: 'invalid credentials' });
-    }
+    if (!claims) return unauthorized(res);
 
     const { rows } = await pool.query<{ id: string; role: CurrentUser['role']; team_id: string | null }>(
       'SELECT id, role, team_id FROM users WHERE id = $1',
       [claims.sub]
     );
-    if (rows.length === 0) {
-      return res.status(401).json({ error: 'Unauthorized', message: 'invalid credentials' });
-    }
+    if (rows.length === 0) return unauthorized(res);
 
     req.user = { id: rows[0].id, role: rows[0].role, teamId: rows[0].team_id };
     return next();

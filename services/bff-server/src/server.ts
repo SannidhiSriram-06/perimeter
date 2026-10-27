@@ -11,9 +11,12 @@ export function start() {
   }
   const pool = createPool();
   const app = createApp({ pool, authSecret });
-  return app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`Perimeter BFF server running on port ${PORT}`);
   });
+  // Kubernetes sends SIGTERM on rollout: finish in-flight requests and release DB connections.
+  process.once('SIGTERM', () => server.close(() => pool.end()));
+  return server;
 }
 
 if (require.main === module) {
