@@ -33,7 +33,7 @@ def print_summary_statistics() -> None:
     print("-" * 80)
 
     print("\n[TRACE BREAKDOWN]")
-    for key, trace_info in SYNTHETIC_TRACES.items():
+    for trace_info in SYNTHETIC_TRACES.values():
         t_spans = trace_info.get("spans", [])
         durations = [s["duration_ms"] for s in t_spans]
         max_duration = max(durations) if durations else 0.0
