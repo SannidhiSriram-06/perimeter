@@ -1,6 +1,6 @@
 # Perimeter
 
-[![CI](https://github.com/SannidhiSriram-06/perimeter/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/SannidhiSriram-06/perimeter/actions/workflows/ci.yml)
+[![CI](https://github.com/SannidhiSriram-06/perimeter/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/SannidhiSriram-06/perimeter/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Self-hosted incident correlation and on-call routing for Kubernetes. Perimeter traces the real dependency chain behind an alert, drafts a root-cause report for a human to review, and pages the right responders. It runs entirely inside your cluster, so telemetry never leaves your infrastructure.
@@ -41,15 +41,16 @@ Green components exist in the repository today. Grey components are planned. See
 | Service dependency graph and BFS blast radius | Built, tested |
 | Mock OpenTelemetry traces and alert fixtures | Built |
 | Alert webhook endpoint (BFF) | Built, accepts and logs alerts |
+| IAM login and role-scoped Team Directory API (BFF) | Built, tested against Postgres |
 | Local PostgreSQL schema and seed data | Built |
-| CI: engine tests, BFF build, compose validation | Built |
+| Minikube bootstrap: Prometheus, Grafana, OTel Collector (Helm) | Built |
+| CI: engine tests, BFF build and tests, compose validation | Built |
 | Signal compressor (rank and trim to token budget) | Planned |
 | LLM root-cause draft and fact-checking validator | Planned |
-| IAM role lookup (5-digit admin, 6-digit team) | Planned |
 | React dashboards | Planned |
 | On-call router and Telegram bot | Planned |
 | Chaos fault injection and accuracy benchmark | Planned |
-| Terraform, Helm, ArgoCD deployment | Planned |
+| Terraform, ArgoCD, Vault, ECR deployment | Planned |
 
 ## Quick start
 
@@ -91,10 +92,11 @@ npm run build
 ```
 services/
   correlation-engine/   Python: graph, BFS blast radius, mock telemetry
-  bff-server/           Node.js: alert webhook and API gateway
+  bff-server/           Node.js: alert webhook, IAM login (src/auth), Team Directory API (src/teams), tests
 deploy/
   docker-compose.yml    Local PostgreSQL
   db/init.sql           Schema and seed data
+  k8s/                  Minikube bootstrap (up.sh, Helm values, sample trace job)
 scripts/
   demo.sh               One-command demo
 .github/                CI workflow and CODEOWNERS
