@@ -106,7 +106,7 @@ Requires `DATABASE_URL` and `AUTH_SECRET` (see `.env.example`). The database mus
 
 | Method | Path | Who | Purpose |
 | :--- | :--- | :--- | :--- |
-| POST | `/api/v1/auth/login` | anyone | Body `{ "id": "10001" }`. Returns a token. Unknown or malformed IDs get the same 401. |
+| POST | `/api/v1/auth/login` | anyone | Body `{ "id": "10001", "password": "..." }`. Returns a token. Unknown IDs, malformed IDs and wrong passwords all get the same 401. The seed password for every demo user is `perimeter-dev` (dev only). |
 | GET | `/api/v1/teams` | signed in | Admins see all teams. Team members see their own team. |
 | GET | `/api/v1/teams/:teamId/members` | admin or that team | Members of a team. |
 | GET | `/api/v1/members/:userId` | admin or same team | One member's profile. |

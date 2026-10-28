@@ -26,11 +26,11 @@ describe('BFF API against seeded Postgres', { skip: !DATABASE_URL && 'TEST_DATAB
     await pool.end();
   });
 
-  const login = async (id: string) => {
+  const login = async (id: string, password: string | undefined = 'perimeter-dev') => {
     const res = await fetch(`${base}/api/v1/auth/login`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ id }),
+      body: JSON.stringify({ id, password }),
     });
     return { status: res.status, body: (await res.json()) as { token?: string; role?: string; message?: string } };
   };
@@ -55,6 +55,13 @@ describe('BFF API against seeded Postgres', { skip: !DATABASE_URL && 'TEST_DATAB
     const malformed = await login('abc');
     const wrongLength = await login('1234');
     for (const r of [unknown, malformed, wrongLength]) {
+      assert.equal(r.status, 401);
+      assert.equal(r.body.message, 'invalid credentials');
+    }
+  });
+
+  test('wrong or missing password is refused with the same generic response', async () => {
+    for (const r of [await login('10001', 'wrong-password'), await login('10001', '')]) {
       assert.equal(r.status, 401);
       assert.equal(r.body.message, 'invalid credentials');
     }
