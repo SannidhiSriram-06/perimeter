@@ -29,7 +29,7 @@ def health() -> Dict[str, str]:
     return {"status": "ok"}
 
 
-@app.post("/correlate", response_model=BlastRadiusReport)
+@app.post("/correlate")
 def correlate(request: CorrelateRequest) -> BlastRadiusReport:
     graph = ServiceDependencyGraph()
     # shortcut: with no spans in the request we use the mock fixtures, because no trace store exists yet; read spans from it when it does.

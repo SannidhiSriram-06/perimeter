@@ -10,7 +10,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-if [ ! -f .env ]; then
+if [[ ! -f .env ]]; then
   cp .env.example .env
   for key in POSTGRES_PASSWORD AUTH_SECRET WEBHOOK_SECRET; do
     sed -i.bak "s|^${key}=.*|${key}=$(openssl rand -hex 16)|" .env

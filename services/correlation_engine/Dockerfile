@@ -1,8 +1,9 @@
 FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app
-COPY requirements.txt ./
-RUN pip install --no-cache-dir --only-binary=:all: -r requirements.txt
+# requirements.lock pins every dependency, including transitive ones, by hash.
+COPY requirements.lock ./
+RUN pip install --no-cache-dir --require-hashes --only-binary=:all: -r requirements.lock
 COPY src ./src
 RUN useradd --system --no-create-home perimeter
 USER perimeter

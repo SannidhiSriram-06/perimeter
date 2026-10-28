@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from 'crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import express, { NextFunction, Request, Response, Router } from 'express';
 import { Pool } from 'pg';
 import { unauthorized, wrap } from '../http';
@@ -78,7 +78,7 @@ export function alertsRouter(pool: Pool, engineUrl: string, webhookSecret: strin
       return rows[0].id;
     }));
 
-    console.log('[Alert Ingestion] received %d alert(s), created %d incident(s)', alerts.length, ids.length);
+    console.log('[Alert Ingestion] created %d incident(s)', ids.length);
     return res.status(202).json({ status: 'accepted', alert_count: alerts.length, incident_ids: ids });
   }));
 

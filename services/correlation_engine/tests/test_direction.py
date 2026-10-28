@@ -52,8 +52,9 @@ def test_report_records_direction() -> None:
 
 
 def test_bad_direction_is_rejected() -> None:
+    graph = mock_graph()
     with pytest.raises(ValueError):
-        mock_graph().get_blast_radius("checkout-service", direction="sideways")  # type: ignore[arg-type]
+        graph.get_blast_radius("checkout-service", direction="sideways")  # type: ignore[arg-type]
     client = TestClient(app)
     assert client.post("/correlate", json={"service": "a", "direction": "sideways"}).status_code == 422
 
