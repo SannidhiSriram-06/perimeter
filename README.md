@@ -60,7 +60,7 @@ Run the correlation engine tests:
 
 ```bash
 cd services/correlation-engine
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 python3 -m pytest tests/
 ```
 
