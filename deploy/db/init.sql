@@ -115,9 +115,12 @@ INSERT INTO team_members (user_id, team_id, seniority, skills, telegram_chat_id,
     ('100103', 'team-core-platform', 'senior', ARRAY['kubernetes', 'terraform', 'opentelemetry'], 'chat_103', FALSE, TRUE)
 ON CONFLICT (user_id, team_id) DO NOTHING;
 
--- Seed Sample Services: checkout-service, payment-gateway, inventory-service
+-- Seed Sample Services: all six services in the mock trace fixtures
 INSERT INTO services (id, name, owning_team_id, tier) VALUES
+    ('frontend-proxy', 'Frontend Proxy', 'team-core-platform', 'critical'),
     ('checkout-service', 'Checkout Service', 'team-payments', 'high'),
     ('payment-gateway', 'Payment Gateway', 'team-payments', 'critical'),
-    ('inventory-service', 'Inventory Service', 'team-core-platform', 'high')
+    ('bank-network', 'Bank Network Gateway', 'team-payments', 'critical'),
+    ('inventory-service', 'Inventory Service', 'team-core-platform', 'high'),
+    ('recommendation-engine', 'Recommendation Engine', 'team-core-platform', 'low')
 ON CONFLICT (id) DO NOTHING;

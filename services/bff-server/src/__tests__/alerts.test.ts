@@ -98,6 +98,16 @@ describe('alert webhook', { skip: !DATABASE_URL && 'TEST_DATABASE_URL not set' }
     assert.deepEqual(rows[0].blast_radius, ['checkout-service', 'payment-gateway']);
   });
 
+  test('every service in the mock traces is seeded, so incidents link to them', async () => {
+    for (const service of ['frontend-proxy', 'bank-network', 'recommendation-engine']) {
+      const res = await post({ alerts: [alert(service)] });
+      const { incident_ids } = (await res.json()) as { incident_ids: string[] };
+      created.push(...incident_ids);
+      const { rows } = await pool.query('SELECT alert_service_id FROM incidents WHERE id = $1', [incident_ids[0]]);
+      assert.equal(rows[0].alert_service_id, service);
+    }
+  });
+
   test('still stores the incident when the engine is down', async () => {
     engineUp = false;
     const res = await post({ alerts: [alert('not-a-known-service')] });
