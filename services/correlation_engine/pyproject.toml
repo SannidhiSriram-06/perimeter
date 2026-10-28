@@ -1,0 +1,14 @@
+# Tool configuration for the correlation engine. It is an application, not a library, so there is no
+# build backend: dependencies stay in requirements.txt (runtime) and requirements-dev.txt (tests).
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Lets pytest find the `src` package from any working directory.
+pythonpath = ["."]
+
+[tool.coverage.run]
+source = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B"]
+# Long lines live in the fixture data and docstrings; wrapping them would only hurt readability.
+ignore = ["E501"]

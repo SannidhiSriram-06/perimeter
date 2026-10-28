@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: services/correlation-engine
+        working-directory: services/correlation_engine
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -82,7 +82,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: "pip install --only-binary=:all: ruff==0.17.3"
-      - run: ruff check services/correlation-engine
+      - run: ruff check services/correlation_engine
       - run: shellcheck scripts/*.sh deploy/k8s/up.sh
       - run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color
 
@@ -93,4 +93,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker build services/bff-server
-      - run: docker build services/correlation-engine
+      - run: docker build services/correlation_engine

@@ -19,7 +19,7 @@ services:
       retries: 10
 
   correlation-engine:
-    build: ../services/correlation-engine
+    build: ../services/correlation_engine
     container_name: perimeter-engine
     restart: unless-stopped
     ports:

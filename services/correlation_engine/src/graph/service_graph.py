@@ -4,11 +4,9 @@ This module provides graph abstractions to map microservice dependencies
 discovered from distributed tracing spans and compute blast radiuses
 during incident cascades.
 
-Execution note (hyphenated directory):
-    Due to the hyphen in `correlation-engine`, Python cannot import it as a standard
-    dotted module path from repository root. Run commands from within this directory:
-    $ cd services/correlation-engine && python3 -m pytest tests/
-    $ cd services/correlation-engine && python3 -m src.mock
+Run commands from the engine directory (the package is `src`):
+    $ cd services/correlation_engine && python3 -m pytest tests/
+    $ cd services/correlation_engine && python3 -m src.mock
 """
 
 from collections import deque

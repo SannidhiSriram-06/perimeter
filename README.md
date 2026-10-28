@@ -61,7 +61,7 @@ Requirements: Python 3.11+, Node.js 20+, Docker with Compose.
 Run the correlation engine tests:
 
 ```bash
-cd services/correlation-engine
+cd services/correlation_engine
 pip install -r requirements-dev.txt
 python3 -m pytest tests/
 ```
@@ -72,7 +72,7 @@ Run the demo. It starts Postgres, the correlation engine and the BFF in Docker, 
 ./scripts/demo.sh
 ```
 
-Print the mock telemetry summary without Docker: `cd services/correlation-engine && python -m src.mock`.
+Print the mock telemetry summary without Docker: `cd services/correlation_engine && python -m src.mock`.
 
 Start the stack yourself (the demo does this and also fills `.env` with random secrets):
 
@@ -95,7 +95,7 @@ npm run build
 
 ```
 services/
-  correlation-engine/   Python: graph, BFS blast radius, HTTP API (src/api.py), mock telemetry, Dockerfile
+  correlation_engine/   Python: graph, BFS blast radius, HTTP API (src/api.py), mock telemetry, Dockerfile
   bff-server/           Node.js: alert webhook (src/alerts), IAM login (src/auth), Team Directory API (src/teams), tests, Dockerfile
 deploy/
   docker-compose.yml    Local stack: PostgreSQL, correlation engine, BFF

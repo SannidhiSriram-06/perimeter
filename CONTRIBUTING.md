@@ -27,7 +27,7 @@ Other automated checks run on every pull request and weekly:
 - Security: dependency review, `npm audit`, `pip-audit`, bandit, and CodeQL (set up in repository settings, not in a workflow file).
 - Coverage: the engine tests fail below 85% coverage.
 
-Run the same checks locally with `ruff check services/correlation-engine` and `cd services/bff-server && npm audit --omit=dev`.
+Run the same checks locally with `ruff check services/correlation_engine` and `cd services/bff-server && npm audit --omit=dev`.
 
 ## Releases
 
@@ -51,5 +51,5 @@ Areas and owners are listed in [.github/CODEOWNERS](.github/CODEOWNERS) and in [
 ## Running things locally
 
 - Local dependencies: see [deploy/README.md](deploy/README.md).
-- Correlation engine tests: `cd services/correlation-engine && python3 -m pytest tests/`
+- Correlation engine tests: `cd services/correlation_engine && python3 -m pytest tests/`
 - Demo: `./scripts/demo.sh`
