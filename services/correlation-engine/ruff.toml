@@ -1,4 +1,0 @@
-[lint]
-select = ["E", "F", "W", "B"]
-# Long lines live in the fixture data and docstrings; wrapping them would only hurt readability.
-ignore = ["E501"]

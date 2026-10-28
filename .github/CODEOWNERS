@@ -6,7 +6,7 @@
 
 # Data and databases (David)
 /deploy/db/                         @DavidParantha
-/services/correlation-engine/       @DavidParantha
+/services/correlation_engine/       @DavidParantha
 
 # Backend and IAM (Jyothi)
 /services/bff-server/               @JyothiSwaroop005
@@ -15,7 +15,7 @@
 /services/dashboard/                @Manmitha03
 
 # On-call router and bot (Vivek)
-/services/correlation-engine/src/router/  @VivekSana
+/services/correlation_engine/src/router/  @VivekSana
 
 # Testing and evaluation (Goutham)
 /evaluation/                        @GouthammLahar
@@ -24,4 +24,4 @@
 /.github/                           @SannidhiSriram-06
 /deploy/terraform/                  @SannidhiSriram-06
 /deploy/k8s/                        @SannidhiSriram-06
-/services/correlation-engine/src/llm/ @SannidhiSriram-06
+/services/correlation_engine/src/llm/ @SannidhiSriram-06

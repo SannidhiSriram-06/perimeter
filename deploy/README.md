@@ -1,7 +1,8 @@
 # Local Development Stack
 
-This folder holds the Docker Compose stack for running Perimeter's local
-dependencies (currently PostgreSQL) with one command.
+This folder holds the Docker Compose stack for running Perimeter locally with
+one command: PostgreSQL, the correlation engine (port 8000) and the BFF (port 3001).
+All ports are bound to 127.0.0.1 only.
 
 ## Prerequisites
 
@@ -23,7 +24,7 @@ Edit `.env` if you need different ports or credentials. Keep `.env` out of git.
 From the repository root:
 
 ```bash
-docker compose -f deploy/docker-compose.yml up -d
+docker compose --env-file .env -f deploy/docker-compose.yml up -d
 ```
 
 On first start, PostgreSQL runs `deploy/db/init.sql` automatically to create
@@ -33,7 +34,7 @@ empty.
 Check that the database is healthy:
 
 ```bash
-docker compose -f deploy/docker-compose.yml ps
+docker compose --env-file .env -f deploy/docker-compose.yml ps
 ```
 
 ## 3. Verify the PostgreSQL connection
@@ -55,12 +56,12 @@ You should see `team-payments` and `team-core-platform`. Type `\q` to exit.
 Re-running `init.sql` requires an empty volume. This deletes all local data:
 
 ```bash
-docker compose -f deploy/docker-compose.yml down -v
-docker compose -f deploy/docker-compose.yml up -d
+docker compose --env-file .env -f deploy/docker-compose.yml down -v
+docker compose --env-file .env -f deploy/docker-compose.yml up -d
 ```
 
 ## 5. Stop the stack
 
 ```bash
-docker compose -f deploy/docker-compose.yml down
+docker compose --env-file .env -f deploy/docker-compose.yml down
 ```

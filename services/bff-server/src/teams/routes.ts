@@ -18,6 +18,7 @@ export function validateStatusPatch(body: unknown): string | null {
   for (const key of ['is_on_leave', 'on_call_status']) {
     if (key in b && typeof b[key] !== 'boolean') return `${key} must be a boolean`;
   }
+  if ('team_id' in b && typeof b.team_id !== 'string') return 'team_id must be a string';
   if ('seniority' in b && !SENIORITY.includes(b.seniority as (typeof SENIORITY)[number])) {
     return `seniority must be one of ${SENIORITY.join(', ')}`;
   }
@@ -63,20 +64,28 @@ export function teamsRouter(pool: Pool): Router {
     return res.json({ members: rows });
   }));
 
-  router.get('/members/:userId', wrap(async (req: Request, res: Response) => {
-    const user = req.user!;
-    const { rows } = await pool.query(
+  /** Memberships of one user, optionally narrowed to one team. A user can belong to several teams. */
+  const findMemberships = (userId: string, teamId: string | null) =>
+    pool.query(
       `SELECT tm.user_id, tm.team_id, u.name, tm.seniority, tm.skills,
               tm.on_call_status, tm.is_on_leave
          FROM team_members tm JOIN users u ON u.id = tm.user_id
-        WHERE tm.user_id = $1`,
-      [req.params.userId]
+        WHERE tm.user_id = $1 AND ($2::text IS NULL OR tm.team_id = $2)`,
+      [userId, teamId]
     );
+
+  const ambiguous = (res: Response) =>
+    res.status(409).json({ error: 'Conflict', message: 'user belongs to several teams: pass team_id' });
+
+  router.get('/members/:userId', wrap(async (req: Request, res: Response) => {
+    const user = req.user!;
+    const teamId = typeof req.query.team_id === 'string' ? req.query.team_id : null;
+    const { rows } = await findMemberships(req.params.userId, teamId);
     if (rows.length === 0) return res.status(404).json({ error: 'Not Found', message: 'member not found' });
-    if (user.role !== 'admin' && !rows.some((r) => r.team_id === user.teamId)) {
-      return res.status(403).json({ error: 'Forbidden', message: 'not a member of your team' });
-    }
-    return res.json({ member: rows });
+    const visible = user.role === 'admin' ? rows : rows.filter((r) => r.team_id === user.teamId);
+    if (visible.length === 0) return res.status(403).json({ error: 'Forbidden', message: 'not a member of your team' });
+    if (visible.length > 1) return ambiguous(res);
+    return res.json({ member: visible[0] });
   }));
 
   router.patch('/members/:userId/status', requireAdmin, wrap(async (req: Request, res: Response) => {
@@ -84,24 +93,28 @@ export function teamsRouter(pool: Pool): Router {
     if (error) return badRequest(res, error);
 
     const b = req.body as Record<string, unknown>;
+    const found = await findMemberships(req.params.userId, (b.team_id as string | undefined) ?? null);
+    if (found.rows.length === 0) return res.status(404).json({ error: 'Not Found', message: 'member not found' });
+    if (found.rows.length > 1) return ambiguous(res);
+
     const { rows } = await pool.query(
       `UPDATE team_members SET
-         is_on_leave    = COALESCE($2, is_on_leave),
-         on_call_status = COALESCE($3, on_call_status),
-         seniority      = COALESCE($4, seniority),
-         skills         = COALESCE($5, skills)
-       WHERE user_id = $1
+         is_on_leave    = COALESCE($3, is_on_leave),
+         on_call_status = COALESCE($4, on_call_status),
+         seniority      = COALESCE($5, seniority),
+         skills         = COALESCE($6, skills)
+       WHERE user_id = $1 AND team_id = $2
        RETURNING user_id, team_id, seniority, skills, on_call_status, is_on_leave`,
       [
         req.params.userId,
+        found.rows[0].team_id,
         b.is_on_leave ?? null,
         b.on_call_status ?? null,
         b.seniority ?? null,
         b.skills ?? null,
       ]
     );
-    if (rows.length === 0) return res.status(404).json({ error: 'Not Found', message: 'member not found' });
-    return res.json({ member: rows });
+    return res.json({ member: rows[0] });
   }));
 
   return router;
