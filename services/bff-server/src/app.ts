@@ -14,12 +14,24 @@ export interface AppDeps {
   correlationUrl: string;
   /** Shared secret Alertmanager must send as a bearer token */
   webhookSecret: string;
+  /** Browser origins allowed to call the API. Defaults to the Vite dev server. */
+  corsOrigins?: string[];
+  /** Number of reverse proxies in front of the BFF (so rate limits use the real client IP). 0 means none. */
+  trustProxy?: number;
 }
 
 /** Builds the Express app. Kept separate from server.ts so tests can run it without listening on a port. */
-export function createApp({ pool, authSecret, correlationUrl, webhookSecret }: AppDeps) {
+export function createApp({
+  pool,
+  authSecret,
+  correlationUrl,
+  webhookSecret,
+  corsOrigins = ['http://localhost:5173'],
+  trustProxy = 0,
+}: AppDeps) {
   const app = express();
-  app.use(cors());
+  if (trustProxy > 0) app.set('trust proxy', trustProxy);
+  app.use(cors({ origin: corsOrigins }));
 
   app.get('/health', (_req: Request, res: Response) => {
     res.status(200).json({

@@ -15,7 +15,14 @@ export function start() {
   }
   const pool = createPool();
   const correlationUrl = process.env.CORRELATION_URL ?? 'http://localhost:8000';
-  const app = createApp({ pool, authSecret, correlationUrl, webhookSecret });
+  const app = createApp({
+    pool,
+    authSecret,
+    correlationUrl,
+    webhookSecret,
+    corsOrigins: process.env.CORS_ORIGIN?.split(',').map((o) => o.trim()).filter(Boolean),
+    trustProxy: Number(process.env.TRUST_PROXY ?? 0) || 0,
+  });
   const server = app.listen(PORT, () => {
     console.log(`Perimeter BFF server running on port ${PORT}`);
   });
