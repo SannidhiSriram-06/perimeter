@@ -10,7 +10,8 @@ export function start() {
     throw new Error('AUTH_SECRET is not set');
   }
   const pool = createPool();
-  const app = createApp({ pool, authSecret });
+  const correlationUrl = process.env.CORRELATION_URL ?? 'http://localhost:8000';
+  const app = createApp({ pool, authSecret, correlationUrl });
   const server = app.listen(PORT, () => {
     console.log(`Perimeter BFF server running on port ${PORT}`);
   });

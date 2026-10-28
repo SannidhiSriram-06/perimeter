@@ -4,15 +4,18 @@ import { Pool } from 'pg';
 import { authRouter } from './auth/routes';
 import { requireAuth } from './auth/middleware';
 import { teamsRouter } from './teams/routes';
+import { alertsRouter } from './alerts/routes';
 import { createLimiters } from './rateLimit';
 
 export interface AppDeps {
   pool: Pool;
   authSecret: string;
+  /** Base URL of the correlation engine, e.g. http://localhost:8000 */
+  correlationUrl: string;
 }
 
 /** Builds the Express app. Kept separate from server.ts so tests can run it without listening on a port. */
-export function createApp({ pool, authSecret }: AppDeps) {
+export function createApp({ pool, authSecret, correlationUrl }: AppDeps) {
   const app = express();
   app.use(cors());
   app.use(express.json());
@@ -25,28 +28,7 @@ export function createApp({ pool, authSecret }: AppDeps) {
     });
   });
 
-  app.post('/api/v1/alerts/webhook', (req: Request, res: Response) => {
-    const { alerts } = req.body || {};
-
-    if (!alerts || !Array.isArray(alerts)) {
-      return res.status(400).json({
-        error: 'Bad Request',
-        message: "Payload must contain an 'alerts' array",
-      });
-    }
-
-    console.log(
-      '[%s] [Alert Ingestion] Received webhook with %d alert(s): %s',
-      new Date().toISOString(),
-      alerts.length,
-      JSON.stringify(req.body)
-    );
-
-    return res.status(202).json({
-      status: 'accepted',
-      alert_count: alerts.length,
-    });
-  });
+  app.use('/api/v1/alerts', alertsRouter(pool, correlationUrl));
 
   const limiters = createLimiters();
   app.use('/api/v1/auth', limiters.login, authRouter(pool, authSecret));

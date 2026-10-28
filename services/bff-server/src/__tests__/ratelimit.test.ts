@@ -13,7 +13,7 @@ describe('rate limiting', () => {
 
   before(async () => {
     pool = new Pool({ connectionString: 'postgres://unused:unused@127.0.0.1:1/unused' });
-    server = createApp({ pool, authSecret: 'rate-limit-test-secret' }).listen(0);
+    server = createApp({ pool, authSecret: 'rate-limit-test-secret', correlationUrl: 'http://127.0.0.1:1' }).listen(0);
     await new Promise((resolve) => server.once('listening', resolve));
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   });

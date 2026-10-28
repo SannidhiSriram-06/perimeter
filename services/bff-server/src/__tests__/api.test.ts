@@ -16,7 +16,7 @@ describe('BFF API against seeded Postgres', { skip: !DATABASE_URL && 'TEST_DATAB
 
   before(async () => {
     pool = new Pool({ connectionString: DATABASE_URL });
-    server = createApp({ pool, authSecret: SECRET }).listen(0);
+    server = createApp({ pool, authSecret: SECRET, correlationUrl: 'http://127.0.0.1:1' }).listen(0);
     await new Promise((resolve) => server.once('listening', resolve));
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   });

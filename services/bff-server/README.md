@@ -62,7 +62,7 @@ curl -X GET http://localhost:3001/health
 
 ### 2. Alert Webhook Ingestion
 
-Receives Prometheus Alertmanager webhook notifications and logs alerts for downstream processing.
+Receives Prometheus Alertmanager webhook notifications. Each firing alert is sent to the correlation engine (`CORRELATION_URL`, default `http://localhost:8000`) and stored as a row in `incidents` with its blast radius. If the engine is down the incident is still stored with status `correlation_failed`.
 
 - **Method**: `POST`
 - **Path**: `/api/v1/alerts/webhook`
@@ -102,7 +102,7 @@ curl -X POST http://localhost:3001/api/v1/alerts/webhook \
 
 ## Auth and Team Directory
 
-Requires `DATABASE_URL` and `AUTH_SECRET` (see `.env.example`). The database must have `deploy/db/init.sql` loaded.
+Requires `DATABASE_URL` and `AUTH_SECRET`, and uses `CORRELATION_URL` (see `.env.example`). The database must have `deploy/db/init.sql` loaded.
 
 | Method | Path | Who | Purpose |
 | :--- | :--- | :--- | :--- |
