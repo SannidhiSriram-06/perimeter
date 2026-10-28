@@ -5,7 +5,7 @@ Breadth-First Search (BFS) engine, signal compression, and incident postmortem d
 without requiring a live Kubernetes cluster.
 
 Working Command to Run:
-    cd services/correlation-engine && python -m src.mock
+    cd services/correlation_engine && python -m src.mock
 """
 
 from typing import Any, Dict, List

@@ -1,8 +1,7 @@
 """CLI runner for mock OpenTelemetry telemetry and synthetic alert fixtures.
 
-The directory `services/correlation-engine` has a hyphen, so it is not importable as a
-package; run from inside it:
-    cd services/correlation-engine && python -m src.mock
+Run from the engine directory:
+    cd services/correlation_engine && python -m src.mock
 """
 
 from __future__ import annotations

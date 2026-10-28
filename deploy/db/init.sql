@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR(100) NOT NULL,
     email VARCHAR(150) UNIQUE NOT NULL,
     team_id VARCHAR(50),
+    password_hash TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_user_id_format CHECK (
         (role = 'admin' AND id ~ '^[0-9]{5}$') OR
@@ -98,11 +99,13 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Seed Users:
 -- 1 admin with 5-digit numeric ID ('10001'), 3 team members with 6-digit numeric IDs ('100101', '100102', '100103')
-INSERT INTO users (id, role, name, email, team_id) VALUES
-    ('10001', 'admin', 'Alex Admin', 'alex.admin@perimeter.internal', 'team-core-platform'),
-    ('100101', 'team_member', 'Dev Dave', 'dave@perimeter.internal', 'team-payments'),
-    ('100102', 'team_member', 'Sara Senior', 'sara@perimeter.internal', 'team-payments'),
-    ('100103', 'team_member', 'Ken Platform', 'ken@perimeter.internal', 'team-core-platform')
+-- DEV ONLY: every seeded user has the password 'perimeter-dev'. Never load this seed into a shared or production database.
+-- Make a hash for a real password with: node -e "require('./dist/auth/password').hashPassword(process.argv[1]).then(console.log)" '<password>'
+INSERT INTO users (id, role, name, email, team_id, password_hash) VALUES
+    ('10001', 'admin', 'Alex Admin', 'alex.admin@perimeter.internal', 'team-core-platform', 'scrypt$6e60e3d30bf85ca771ab2a494680a96e$07eef6f34936cbf30c474e2875f1f77bc67a229618ff1855b588d5dcba1ab9e10d33d8f1fd0b5b43e21962358d25e4eb1f87edb61a4d75bbc195afbaae6ce77d'),
+    ('100101', 'team_member', 'Dev Dave', 'dave@perimeter.internal', 'team-payments', 'scrypt$6e60e3d30bf85ca771ab2a494680a96e$07eef6f34936cbf30c474e2875f1f77bc67a229618ff1855b588d5dcba1ab9e10d33d8f1fd0b5b43e21962358d25e4eb1f87edb61a4d75bbc195afbaae6ce77d'),
+    ('100102', 'team_member', 'Sara Senior', 'sara@perimeter.internal', 'team-payments', 'scrypt$6e60e3d30bf85ca771ab2a494680a96e$07eef6f34936cbf30c474e2875f1f77bc67a229618ff1855b588d5dcba1ab9e10d33d8f1fd0b5b43e21962358d25e4eb1f87edb61a4d75bbc195afbaae6ce77d'),
+    ('100103', 'team_member', 'Ken Platform', 'ken@perimeter.internal', 'team-core-platform', 'scrypt$6e60e3d30bf85ca771ab2a494680a96e$07eef6f34936cbf30c474e2875f1f77bc67a229618ff1855b588d5dcba1ab9e10d33d8f1fd0b5b43e21962358d25e4eb1f87edb61a4d75bbc195afbaae6ce77d')
 ON CONFLICT (id) DO NOTHING;
 
 -- Seed Team Members (idempotent with UNIQUE(user_id, team_id))
@@ -112,9 +115,12 @@ INSERT INTO team_members (user_id, team_id, seniority, skills, telegram_chat_id,
     ('100103', 'team-core-platform', 'senior', ARRAY['kubernetes', 'terraform', 'opentelemetry'], 'chat_103', FALSE, TRUE)
 ON CONFLICT (user_id, team_id) DO NOTHING;
 
--- Seed Sample Services: checkout-service, payment-gateway, inventory-service
+-- Seed Sample Services: all six services in the mock trace fixtures
 INSERT INTO services (id, name, owning_team_id, tier) VALUES
+    ('frontend-proxy', 'Frontend Proxy', 'team-core-platform', 'critical'),
     ('checkout-service', 'Checkout Service', 'team-payments', 'high'),
     ('payment-gateway', 'Payment Gateway', 'team-payments', 'critical'),
-    ('inventory-service', 'Inventory Service', 'team-core-platform', 'high')
+    ('bank-network', 'Bank Network Gateway', 'team-payments', 'critical'),
+    ('inventory-service', 'Inventory Service', 'team-core-platform', 'high'),
+    ('recommendation-engine', 'Recommendation Engine', 'team-core-platform', 'low')
 ON CONFLICT (id) DO NOTHING;

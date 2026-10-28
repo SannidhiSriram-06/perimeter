@@ -139,7 +139,7 @@ gantt
 Perimeter/
 ├── project_architecture_and_roadmap.md  # Master architectural roadmap & timeline
 ├── services/
-│   ├── correlation-engine/              # Python: BFS Graph, Signal Compressor, LLM Integration
+│   ├── correlation_engine/              # Python: BFS Graph, Signal Compressor, LLM Integration
 │   │   ├── src/
 │   │   │   ├── graph/                   # OTel trace BFS traversal
 │   │   │   ├── compressor/              # Signal ranking & token budgeting
@@ -174,7 +174,7 @@ Perimeter/
 ## Quality Assurance & Verification Strategy
 
 ### Planned Automated Testing
-- `pytest services/correlation-engine/tests/`: Verify BFS graph traversal bounds, cycle handling, compression token limits, and validator rejection of hallucinated entities.
+- `pytest services/correlation_engine/tests/`: Verify BFS graph traversal bounds, cycle handling, compression token limits, and validator rejection of hallucinated entities.
 - `npm test --prefix services/bff-server`: Verify IAM role security (role enforcement and constant error messaging).
 - `python evaluation/benchmark/run_benchmark.py`: Execute evaluation suite against injected chaos experiments.
 

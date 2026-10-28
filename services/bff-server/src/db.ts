@@ -8,5 +8,12 @@ export function createPool(connectionString: string | undefined = process.env.DA
   if (!connectionString) {
     throw new Error('DATABASE_URL is not set');
   }
-  return new Pool({ connectionString });
+  return new Pool({
+    connectionString,
+    max: 10,
+    idleTimeoutMillis: 30_000,
+    // Fail fast instead of queueing forever when the database is slow or unreachable.
+    connectionTimeoutMillis: 5_000,
+    statement_timeout: 10_000,
+  });
 }
