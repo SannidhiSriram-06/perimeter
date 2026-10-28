@@ -4,9 +4,9 @@ import { AddressInfo } from 'net';
 import http, { Server } from 'http';
 import { Pool } from 'pg';
 import { createApp } from '../app';
+import { DATABASE_URL, skipWithoutDb } from './testDb';
 
-// Needs a Postgres with deploy/db/init.sql loaded. Skipped when TEST_DATABASE_URL is unset.
-const DATABASE_URL = process.env.TEST_DATABASE_URL;
+// Needs a Postgres with deploy/db/init.sql loaded. Skipped locally (with a warning) when TEST_DATABASE_URL is unset; fails in CI.
 const WEBHOOK_SECRET = 'webhook-test-secret';
 
 const listen = (server: Server) =>
@@ -14,7 +14,7 @@ const listen = (server: Server) =>
     server.listen(0, '127.0.0.1', () => resolve(`http://127.0.0.1:${(server.address() as AddressInfo).port}`))
   );
 
-describe('alert webhook', { skip: !DATABASE_URL && 'TEST_DATABASE_URL not set' }, () => {
+describe('alert webhook', { skip: skipWithoutDb }, () => {
   let pool: Pool;
   let engine: Server;
   let bff: Server;

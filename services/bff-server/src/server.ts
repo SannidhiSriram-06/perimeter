@@ -19,8 +19,10 @@ export function start() {
   const server = app.listen(PORT, () => {
     console.log(`Perimeter BFF server running on port ${PORT}`);
   });
-  // Kubernetes sends SIGTERM on rollout: finish in-flight requests and release DB connections.
-  process.once('SIGTERM', () => server.close(() => pool.end()));
+  // SIGTERM comes from Kubernetes on rollout, SIGINT from Ctrl+C and compose restarts: finish in-flight requests, release DB connections.
+  for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+    process.once(signal, () => server.close(() => pool.end()));
+  }
   return server;
 }
 

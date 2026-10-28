@@ -4,12 +4,12 @@ import { AddressInfo } from 'net';
 import { Server } from 'http';
 import { Pool } from 'pg';
 import { createApp } from '../app';
+import { DATABASE_URL, skipWithoutDb } from './testDb';
 
-// Needs a Postgres with deploy/db/init.sql loaded. Skipped when TEST_DATABASE_URL is unset.
-const DATABASE_URL = process.env.TEST_DATABASE_URL;
+// Needs a Postgres with deploy/db/init.sql loaded. Skipped locally (with a warning) when TEST_DATABASE_URL is unset; fails in CI.
 const SECRET = 'integration-test-secret';
 
-describe('BFF API against seeded Postgres', { skip: !DATABASE_URL && 'TEST_DATABASE_URL not set' }, () => {
+describe('BFF API against seeded Postgres', { skip: skipWithoutDb }, () => {
   let pool: Pool;
   let server: Server;
   let base: string;
