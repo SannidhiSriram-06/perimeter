@@ -4,17 +4,19 @@ This module provides graph abstractions to map microservice dependencies
 discovered from distributed tracing spans and compute blast radiuses
 during incident cascades.
 
-Execution note (hyphenated directory):
-    Due to the hyphen in `correlation-engine`, Python cannot import it as a standard
-    dotted module path from repository root. Run commands from within this directory:
-    $ cd services/correlation-engine && python3 -m pytest tests/
-    $ cd services/correlation-engine && python3 -m src.mock
+Run commands from the engine directory (the package is `src`):
+    $ cd services/correlation_engine && python3 -m pytest tests/
+    $ cd services/correlation_engine && python3 -m src.mock
 """
 
 from collections import deque
-from typing import Any, Dict, List, Optional, Set
+from itertools import chain
+from typing import Any, Dict, Iterator, List, Literal, Optional, Set
 import networkx as nx
 from pydantic import BaseModel, Field
+
+
+Direction = Literal["downstream", "upstream", "both"]
 
 
 class ServiceEdge(BaseModel):
@@ -30,6 +32,7 @@ class BlastRadiusReport(BaseModel):
 
     origin_service: str = Field(..., description="Service initiating or suffering the alert")
     max_depth: int = Field(default=3, ge=0, description="Max BFS traversal depth")
+    direction: Direction = Field(default="downstream", description="Which way the BFS followed call edges")
     impacted_services: List[str] = Field(
         default_factory=list, description="Ordered list of downstream impacted services"
     )
@@ -71,22 +74,39 @@ class ServiceDependencyGraph:
                 source_service, target_service, call_count=call_count
             )
 
-    def get_blast_radius(self, origin_service: str, max_depth: int = 3) -> List[str]:
-        """Compute the downstream blast radius using Breadth-First Search (BFS).
+    def _neighbors(self, service: str, direction: Direction) -> Iterator[str]:
+        if direction == "downstream":
+            return iter(self._graph.successors(service))
+        if direction == "upstream":
+            return iter(self._graph.predecessors(service))
+        return chain(self._graph.successors(service), self._graph.predecessors(service))
 
-        Traverses directed edges starting from `origin_service` up to `max_depth`
+    def get_blast_radius(
+        self, origin_service: str, max_depth: int = 3, direction: Direction = "downstream"
+    ) -> List[str]:
+        """Compute the blast radius using Breadth-First Search (BFS).
+
+        Traverses call edges starting from `origin_service` up to `max_depth`
         hops away. Cycle-safe: handles loops and mutual dependencies without
         infinite loops.
 
         Args:
             origin_service: The service where failure or alert originated.
             max_depth: Maximum BFS traversal distance (default: 3).
+            direction: "downstream" follows callees (where a fault may come from),
+                "upstream" follows callers (who suffers from it), "both" follows
+                both ways.
 
         Returns:
             Ordered list of reachable services starting with `origin_service`.
             Returns an empty list if `origin_service` is not in the graph or
             if max_depth is negative.
+
+        Raises:
+            ValueError: If direction is not one of the allowed values.
         """
+        if direction not in ("downstream", "upstream", "both"):
+            raise ValueError(f"direction must be downstream, upstream or both, got {direction!r}")
         if not self._graph.has_node(origin_service) or max_depth < 0:
             return []
 
@@ -100,7 +120,7 @@ class ServiceDependencyGraph:
             if current_depth >= max_depth:
                 continue
 
-            for neighbor in self._graph.successors(current_service):
+            for neighbor in self._neighbors(current_service, direction):
                 if neighbor not in visited:
                     visited.add(neighbor)
                     impacted_order.append(neighbor)
@@ -109,7 +129,7 @@ class ServiceDependencyGraph:
         return impacted_order
 
     def get_blast_radius_report(
-        self, origin_service: str, max_depth: int = 3
+        self, origin_service: str, max_depth: int = 3, direction: Direction = "downstream"
     ) -> BlastRadiusReport:
         """Return a Pydantic-validated BlastRadiusReport for the origin service.
 
@@ -119,10 +139,11 @@ class ServiceDependencyGraph:
         if max_depth < 0:
             raise ValueError(f"max_depth must be non-negative, got {max_depth}")
 
-        impacted = self.get_blast_radius(origin_service=origin_service, max_depth=max_depth)
+        impacted = self.get_blast_radius(origin_service, max_depth, direction)
         return BlastRadiusReport(
             origin_service=origin_service,
             max_depth=max_depth,
+            direction=direction,
             impacted_services=impacted,
             total_impacted=len(impacted),
         )

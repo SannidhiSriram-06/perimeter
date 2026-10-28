@@ -4,19 +4,19 @@ import { AddressInfo } from 'net';
 import { Server } from 'http';
 import { Pool } from 'pg';
 import { createApp } from '../app';
+import { DATABASE_URL, skipWithoutDb } from './testDb';
 
-// Needs a Postgres with deploy/db/init.sql loaded. Skipped when TEST_DATABASE_URL is unset.
-const DATABASE_URL = process.env.TEST_DATABASE_URL;
+// Needs a Postgres with deploy/db/init.sql loaded. Skipped locally (with a warning) when TEST_DATABASE_URL is unset; fails in CI.
 const SECRET = 'integration-test-secret';
 
-describe('BFF API against seeded Postgres', { skip: !DATABASE_URL && 'TEST_DATABASE_URL not set' }, () => {
+describe('BFF API against seeded Postgres', { skip: skipWithoutDb }, () => {
   let pool: Pool;
   let server: Server;
   let base: string;
 
   before(async () => {
     pool = new Pool({ connectionString: DATABASE_URL });
-    server = createApp({ pool, authSecret: SECRET }).listen(0);
+    server = createApp({ pool, authSecret: SECRET, correlationUrl: 'http://127.0.0.1:1', webhookSecret: 'unused-webhook-secret' }).listen(0);
     await new Promise((resolve) => server.once('listening', resolve));
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   });
@@ -26,11 +26,11 @@ describe('BFF API against seeded Postgres', { skip: !DATABASE_URL && 'TEST_DATAB
     await pool.end();
   });
 
-  const login = async (id: string) => {
+  const login = async (id: string, password: string | undefined = 'perimeter-dev') => {
     const res = await fetch(`${base}/api/v1/auth/login`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ id }),
+      body: JSON.stringify({ id, password }),
     });
     return { status: res.status, body: (await res.json()) as { token?: string; role?: string; message?: string } };
   };
@@ -55,6 +55,13 @@ describe('BFF API against seeded Postgres', { skip: !DATABASE_URL && 'TEST_DATAB
     const malformed = await login('abc');
     const wrongLength = await login('1234');
     for (const r of [unknown, malformed, wrongLength]) {
+      assert.equal(r.status, 401);
+      assert.equal(r.body.message, 'invalid credentials');
+    }
+  });
+
+  test('wrong or missing password is refused with the same generic response', async () => {
+    for (const r of [await login('10001', 'wrong-password'), await login('10001', '')]) {
       assert.equal(r.status, 401);
       assert.equal(r.body.message, 'invalid credentials');
     }
@@ -89,8 +96,8 @@ describe('BFF API against seeded Postgres', { skip: !DATABASE_URL && 'TEST_DATAB
 
   test('admin updates a member, then restores the original values', async () => {
     const admin = await tokenFor('10001');
-    const before = await (await call('GET', '/api/v1/members/100102', admin)).json() as { member: { is_on_leave: boolean; seniority: string }[] };
-    const original = before.member[0];
+    const before = await (await call('GET', '/api/v1/members/100102', admin)).json() as { member: { is_on_leave: boolean; seniority: string } };
+    const original = before.member;
 
     const changed = await call('PATCH', '/api/v1/members/100102/status', admin, { is_on_leave: true, seniority: 'senior' });
     assert.equal(changed.status, 200);
@@ -99,6 +106,36 @@ describe('BFF API against seeded Postgres', { skip: !DATABASE_URL && 'TEST_DATAB
       is_on_leave: original.is_on_leave,
       seniority: original.seniority,
     });
+  });
+
+  test('member endpoints return one object, not an array', async () => {
+    const res = await call('GET', '/api/v1/members/100101', await tokenFor('100101'));
+    const body = (await res.json()) as { member: { user_id: string; team_id: string } };
+    assert.equal(body.member.user_id, '100101');
+    assert.equal(body.member.team_id, 'team-payments');
+  });
+
+  test('unknown member is 404 and another team\'s member is 403 for a team member', async () => {
+    assert.equal((await call('GET', '/api/v1/members/999999', await tokenFor('10001'))).status, 404);
+    assert.equal((await call('GET', '/api/v1/members/100103', await tokenFor('100101'))).status, 403);
+  });
+
+  test('a user in two teams must be addressed with team_id, and only that team is changed', async () => {
+    await pool.query(
+      `INSERT INTO team_members (user_id, team_id, seniority) VALUES ('100101', 'team-core-platform', 'junior')`
+    );
+    try {
+      const admin = await tokenFor('10001');
+      assert.equal((await call('PATCH', '/api/v1/members/100101/status', admin, { is_on_leave: true })).status, 409);
+      assert.equal((await call('GET', '/api/v1/members/100101', admin)).status, 409);
+
+      const res = await call('PATCH', '/api/v1/members/100101/status', admin, { team_id: 'team-core-platform', is_on_leave: true });
+      assert.equal(res.status, 200);
+      const { rows } = await pool.query('SELECT team_id, is_on_leave FROM team_members WHERE user_id = $1 ORDER BY team_id', ['100101']);
+      assert.deepEqual(rows.map((r) => [r.team_id, r.is_on_leave]), [['team-core-platform', true], ['team-payments', false]]);
+    } finally {
+      await pool.query(`DELETE FROM team_members WHERE user_id = '100101' AND team_id = 'team-core-platform'`);
+    }
   });
 
   test('admin PATCH rejects invalid seniority', async () => {

@@ -9,13 +9,27 @@ export function start() {
   if (!authSecret) {
     throw new Error('AUTH_SECRET is not set');
   }
+  const webhookSecret = process.env.WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    throw new Error('WEBHOOK_SECRET is not set');
+  }
   const pool = createPool();
-  const app = createApp({ pool, authSecret });
+  const correlationUrl = process.env.CORRELATION_URL ?? 'http://localhost:8000';
+  const app = createApp({
+    pool,
+    authSecret,
+    correlationUrl,
+    webhookSecret,
+    corsOrigins: process.env.CORS_ORIGIN?.split(',').map((o) => o.trim()).filter(Boolean),
+    trustProxy: Number(process.env.TRUST_PROXY ?? 0) || 0,
+  });
   const server = app.listen(PORT, () => {
     console.log(`Perimeter BFF server running on port ${PORT}`);
   });
-  // Kubernetes sends SIGTERM on rollout: finish in-flight requests and release DB connections.
-  process.once('SIGTERM', () => server.close(() => pool.end()));
+  // SIGTERM comes from Kubernetes on rollout, SIGINT from Ctrl+C and compose restarts: finish in-flight requests, release DB connections.
+  for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+    process.once(signal, () => server.close(() => pool.end()));
+  }
   return server;
 }
 
