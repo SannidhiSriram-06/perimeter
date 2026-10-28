@@ -1,7 +1,8 @@
 # Local Development Stack
 
-This folder holds the Docker Compose stack for running Perimeter's local
-dependencies (currently PostgreSQL) with one command.
+This folder holds the Docker Compose stack for running Perimeter locally with
+one command: PostgreSQL, the correlation engine (port 8000) and the BFF (port 3001).
+All ports are bound to 127.0.0.1 only.
 
 ## Prerequisites
 

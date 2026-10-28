@@ -40,11 +40,13 @@ Green components exist in the repository today. Grey components are planned. See
 | :--- | :--- |
 | Service dependency graph and BFS blast radius | Built, tested |
 | Mock OpenTelemetry traces and alert fixtures | Built |
-| Alert webhook endpoint (BFF) | Built, accepts and logs alerts |
+| Alert webhook (BFF): secret-protected, calls the engine, stores incidents | Built, tested |
+| Correlation engine HTTP API (`POST /correlate`, upstream, downstream or both) | Built, tested |
 | IAM login and role-scoped Team Directory API (BFF) | Built, tested against Postgres |
 | Local PostgreSQL schema and seed data | Built |
-| Minikube bootstrap: Prometheus, Grafana, OTel Collector (Helm) | Built |
-| CI: engine tests, BFF build and tests, compose validation | Built |
+| Minikube bootstrap: Prometheus, Alertmanager, Grafana, OTel Collector (Helm) | Built |
+| Dockerfiles and a full local Compose stack (Postgres, engine, BFF) | Built |
+| CI: tests with coverage gate, lint, security scans, image builds | Built |
 | Signal compressor (rank and trim to token budget) | Planned |
 | LLM root-cause draft and fact-checking validator | Planned |
 | React dashboards | Planned |
@@ -64,20 +66,22 @@ pip install -r requirements-dev.txt
 python3 -m pytest tests/
 ```
 
-Run the demo (mock telemetry summary):
+Run the demo. It starts Postgres, the correlation engine and the BFF in Docker, sends an alert to the webhook, and prints the stored incident with its blast radius:
 
 ```bash
 ./scripts/demo.sh
 ```
 
-Start the local PostgreSQL stack:
+Print the mock telemetry summary without Docker: `cd services/correlation-engine && python -m src.mock`.
+
+Start the stack yourself (the demo does this and also fills `.env` with random secrets):
 
 ```bash
-cp .env.example .env
-docker compose -f deploy/docker-compose.yml up -d
+cp .env.example .env   # then replace the change_me values
+docker compose --env-file .env -f deploy/docker-compose.yml up -d --build
 ```
 
-See [deploy/README.md](deploy/README.md) for the database details.
+Demo logins use the seeded users (`10001` admin, `100101` team member) with the dev-only password `perimeter-dev`. See [deploy/README.md](deploy/README.md) for the database details.
 
 Build the alert webhook service:
 
@@ -91,10 +95,10 @@ npm run build
 
 ```
 services/
-  correlation-engine/   Python: graph, BFS blast radius, mock telemetry
-  bff-server/           Node.js: alert webhook, IAM login (src/auth), Team Directory API (src/teams), tests
+  correlation-engine/   Python: graph, BFS blast radius, HTTP API (src/api.py), mock telemetry, Dockerfile
+  bff-server/           Node.js: alert webhook (src/alerts), IAM login (src/auth), Team Directory API (src/teams), tests, Dockerfile
 deploy/
-  docker-compose.yml    Local PostgreSQL
+  docker-compose.yml    Local stack: PostgreSQL, correlation engine, BFF
   db/init.sql           Schema and seed data
   k8s/                  Minikube bootstrap (up.sh, Helm values, sample trace job)
 scripts/

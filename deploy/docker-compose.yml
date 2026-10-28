@@ -18,5 +18,30 @@ services:
       timeout: 5s
       retries: 10
 
+  correlation-engine:
+    build: ../services/correlation-engine
+    container_name: perimeter-engine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${CORRELATION_ENGINE_PORT:-8000}:8000"
+
+  bff:
+    build: ../services/bff-server
+    container_name: perimeter-bff
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      correlation-engine:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${BFF_PORT:-3001}:3001"
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-perimeter}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-perimeter_db}
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:?set WEBHOOK_SECRET in .env}
+      CORRELATION_URL: http://correlation-engine:8000
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+
 volumes:
   perimeter-postgres-data:
