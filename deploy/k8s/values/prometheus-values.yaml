@@ -16,4 +16,26 @@ grafana:
     requests: { cpu: 100m, memory: 384Mi }
     limits: { memory: 768Mi }
 alertmanager:
-  enabled: false
+  enabled: true
+  alertmanagerSpec:
+    # Mounted at /etc/alertmanager/secrets/perimeter-webhook/ ; up.sh creates it.
+    secrets: [perimeter-webhook]
+    resources:
+      requests: { cpu: 50m, memory: 64Mi }
+      limits: { memory: 128Mi }
+  config:
+    route:
+      receiver: perimeter-webhook
+      group_by: [alertname, service]
+      group_wait: 10s
+      group_interval: 1m
+      repeat_interval: 4h
+    receivers:
+      - name: perimeter-webhook
+        webhook_configs:
+          # The BFF is not deployed in the cluster yet; until it is, deliveries fail and Alertmanager retries.
+          - url: http://perimeter-bff.perimeter.svc.cluster.local:3001/api/v1/alerts/webhook
+            send_resolved: true
+            http_config:
+              authorization:
+                credentials_file: /etc/alertmanager/secrets/perimeter-webhook/token

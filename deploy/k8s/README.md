@@ -1,6 +1,8 @@
 # Local Kubernetes (Minikube)
 
-Brings up Prometheus, Grafana and the OpenTelemetry Collector in Minikube, then sends sample spans through the collector.
+Brings up Prometheus, Alertmanager, Grafana and the OpenTelemetry Collector in Minikube, then sends sample spans through the collector.
+
+Alertmanager sends firing alerts to the BFF webhook (`perimeter-bff.perimeter.svc.cluster.local:3001`) with a bearer token from the `perimeter-webhook` secret. The BFF is not deployed in the cluster yet, so deliveries fail and retry until it is.
 
 ## Prerequisites
 

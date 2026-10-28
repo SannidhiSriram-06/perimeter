@@ -33,7 +33,8 @@ async function blastRadius(engineUrl: string, service: string): Promise<string[]
     const res = await fetch(`${engineUrl}/correlate`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ service }),
+      // 'both' covers callees (possible causes) and callers (who is hurt), which is what responders and the router need.
+      body: JSON.stringify({ service, direction: 'both' }),
       signal: AbortSignal.timeout(ENGINE_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`engine answered ${res.status}`);
