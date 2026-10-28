@@ -9,9 +9,13 @@ export function start() {
   if (!authSecret) {
     throw new Error('AUTH_SECRET is not set');
   }
+  const webhookSecret = process.env.WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    throw new Error('WEBHOOK_SECRET is not set');
+  }
   const pool = createPool();
   const correlationUrl = process.env.CORRELATION_URL ?? 'http://localhost:8000';
-  const app = createApp({ pool, authSecret, correlationUrl });
+  const app = createApp({ pool, authSecret, correlationUrl, webhookSecret });
   const server = app.listen(PORT, () => {
     console.log(`Perimeter BFF server running on port ${PORT}`);
   });

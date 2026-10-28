@@ -24,7 +24,13 @@ The script is safe to re-run. It starts Minikube if it's stopped, installs or up
    kubectl -n perimeter port-forward svc/perimeter-monitoring-grafana 3000:80
    ```
 
-   Then go to http://localhost:3000 (user `admin`, password `perimeter-dev`). Prometheus targets are under Explore.
+   Then go to http://localhost:3000 (user `admin`). `up.sh` generates the password; read it with:
+
+   ```bash
+   kubectl -n perimeter get secret perimeter-grafana-admin -o jsonpath='{.data.admin-password}' | base64 -d; echo
+   ```
+
+   Prometheus targets are under Explore.
 
 ## Stop
 

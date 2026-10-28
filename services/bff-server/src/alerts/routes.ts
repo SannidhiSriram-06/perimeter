@@ -1,6 +1,7 @@
-import { Request, Response, Router } from 'express';
+import { createHash, timingSafeEqual } from 'crypto';
+import express, { NextFunction, Request, Response, Router } from 'express';
 import { Pool } from 'pg';
-import { wrap } from '../http';
+import { unauthorized, wrap } from '../http';
 
 const MAX_ALERTS_PER_REQUEST = 100;
 const ENGINE_TIMEOUT_MS = 5000;
@@ -12,6 +13,19 @@ interface Alert {
 
 const text = (value: unknown, fallback: string): string =>
   typeof value === 'string' && value ? value.slice(0, 100) : fallback;
+
+const sha256 = (value: string) => createHash('sha256').update(value).digest();
+
+/** Accepts only requests that carry `Authorization: Bearer <secret>`. Alertmanager sends it from its http_config. */
+function requireWebhookSecret(secret: string) {
+  const expected = sha256(secret);
+  return (req: Request, res: Response, next: NextFunction) => {
+    const header = req.headers.authorization ?? '';
+    const given = header.startsWith('Bearer ') ? header.slice(7) : '';
+    // Hashing first gives both sides the same length, which timingSafeEqual requires.
+    return timingSafeEqual(sha256(given), expected) ? next() : unauthorized(res);
+  };
+}
 
 /** Asks the correlation engine for the blast radius. Returns null when the engine cannot answer. */
 async function blastRadius(engineUrl: string, service: string): Promise<string[] | null> {
@@ -35,8 +49,10 @@ async function blastRadius(engineUrl: string, service: string): Promise<string[]
  * Each firing alert becomes an incident row holding its blast radius. If the engine is down the incident is still
  * stored (status correlation_failed) so the alert is never lost.
  */
-export function alertsRouter(pool: Pool, engineUrl: string): Router {
+export function alertsRouter(pool: Pool, engineUrl: string, webhookSecret: string): Router {
   const router = Router();
+  // Authenticate before reading the body; this router parses its own JSON because alert batches can exceed the default 100 kB.
+  router.use(requireWebhookSecret(webhookSecret), express.json({ limit: '1mb' }));
 
   router.post('/webhook', wrap(async (req: Request, res: Response) => {
     const alerts: unknown = req.body?.alerts;

@@ -7,7 +7,7 @@ services:
       - "127.0.0.1:5432:5432"
     environment:
       POSTGRES_USER: perimeter
-      POSTGRES_PASSWORD: perimeter_dev_secret
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: perimeter_db
     volumes:
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro

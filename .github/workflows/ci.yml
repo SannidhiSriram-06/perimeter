@@ -70,7 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: docker compose -f deploy/docker-compose.yml config -q
+      - run: docker compose --env-file .env.example -f deploy/docker-compose.yml config -q
 
   lint:
     name: Lint (ruff, shellcheck, actionlint)

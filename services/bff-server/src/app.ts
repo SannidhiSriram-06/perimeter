@@ -12,13 +12,14 @@ export interface AppDeps {
   authSecret: string;
   /** Base URL of the correlation engine, e.g. http://localhost:8000 */
   correlationUrl: string;
+  /** Shared secret Alertmanager must send as a bearer token */
+  webhookSecret: string;
 }
 
 /** Builds the Express app. Kept separate from server.ts so tests can run it without listening on a port. */
-export function createApp({ pool, authSecret, correlationUrl }: AppDeps) {
+export function createApp({ pool, authSecret, correlationUrl, webhookSecret }: AppDeps) {
   const app = express();
   app.use(cors());
-  app.use(express.json());
 
   app.get('/health', (_req: Request, res: Response) => {
     res.status(200).json({
@@ -28,7 +29,8 @@ export function createApp({ pool, authSecret, correlationUrl }: AppDeps) {
     });
   });
 
-  app.use('/api/v1/alerts', alertsRouter(pool, correlationUrl));
+  app.use('/api/v1/alerts', alertsRouter(pool, correlationUrl, webhookSecret));
+  app.use(express.json());
 
   const limiters = createLimiters();
   app.use('/api/v1/auth', limiters.login, authRouter(pool, authSecret));

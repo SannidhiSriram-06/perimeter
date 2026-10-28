@@ -7,6 +7,7 @@ import { createApp } from '../app';
 
 // Needs a Postgres with deploy/db/init.sql loaded. Skipped when TEST_DATABASE_URL is unset.
 const DATABASE_URL = process.env.TEST_DATABASE_URL;
+const WEBHOOK_SECRET = 'webhook-test-secret';
 
 const listen = (server: Server) =>
   new Promise<string>((resolve) =>
@@ -38,7 +39,7 @@ describe('alert webhook', { skip: !DATABASE_URL && 'TEST_DATABASE_URL not set' }
       });
     });
     const engineUrl = await listen(engine);
-    bff = createApp({ pool, authSecret: 'alerts-test-secret', correlationUrl: engineUrl }).listen(0);
+    bff = createApp({ pool, authSecret: 'alerts-test-secret', correlationUrl: engineUrl, webhookSecret: WEBHOOK_SECRET }).listen(0);
     await new Promise((resolve) => bff.once('listening', resolve));
     base = `http://127.0.0.1:${(bff.address() as AddressInfo).port}`;
   });
@@ -50,14 +51,30 @@ describe('alert webhook', { skip: !DATABASE_URL && 'TEST_DATABASE_URL not set' }
     await pool.end();
   });
 
-  const post = (body: unknown) =>
+  const post = (body: unknown, token: string | null = WEBHOOK_SECRET) =>
     fetch(`${base}/api/v1/alerts/webhook`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
       body: JSON.stringify(body),
     });
 
   const alert = (service: string, status = 'firing') => ({ status, labels: { alertname: 'HighLatency', service } });
+
+  test('refuses requests without the shared secret, and stores nothing', async () => {
+    const before = (await pool.query('SELECT count(*)::int AS n FROM incidents')).rows[0].n;
+    assert.equal((await post({ alerts: [alert('checkout-service')] }, null)).status, 401);
+    assert.equal((await post({ alerts: [alert('checkout-service')] }, 'wrong-secret')).status, 401);
+    assert.equal((await pool.query('SELECT count(*)::int AS n FROM incidents')).rows[0].n, before);
+  });
+
+  test('accepts batches larger than the default 100 kB body limit', async () => {
+    const big = Array.from({ length: 100 }, () => ({ ...alert('checkout-service', 'resolved'), annotations: { note: 'x'.repeat(2000) } }));
+    assert.equal((await post({ alerts: big })).status, 202);
+  });
+
+  test('rejects more than 100 alerts in one request', async () => {
+    assert.equal((await post({ alerts: Array(101).fill(alert('checkout-service', 'resolved')) })).status, 400);
+  });
 
   test('rejects a payload without an alerts array', async () => {
     assert.equal((await post({})).status, 400);
