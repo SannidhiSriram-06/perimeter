@@ -16,8 +16,15 @@ No other branches are allowed on the remote. GitHub blocks creating them.
 1. Pull the latest `develop`.
 2. Make your change locally.
 3. Open a pull request into `develop` and request review. CODEOWNERS requests the owner of each area you touched.
-4. Get one approval from someone other than yourself.
-5. Merge with **Squash and merge**. The branch is removed automatically after merge.
+4. Get approval (see [Who approves](#who-approves)).
+5. Merge with **Squash and merge**.
+
+## Who approves
+
+- **Teammates:** every pull request needs one approval from someone other than its author. In practice the lead (@SannidhiSriram-06) approves, and aims to do so within 15 minutes of a request. Ping the lead in the group chat when you open a PR.
+- **The lead:** the lead's own pull requests do not need anyone else's approval. The lead merges them once the required checks pass.
+- **Checks are not optional for anyone.** Nobody merges with a failing required check, the lead included.
+- Pull requests that touch infra, CI, AI or IAM always get the lead's review, whoever wrote them.
 
 Required checks must pass before merge: the correlation engine tests, the BFF build, and docker-compose validation.
 
