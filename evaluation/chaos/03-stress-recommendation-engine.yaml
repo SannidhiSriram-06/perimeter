@@ -1,0 +1,23 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: stress-recommendation-engine
+  namespace: perimeter-test
+  labels:
+    perimeter.io/scenario: "chaos-sc-03"
+    perimeter.io/environment: "controlled-test"
+spec:
+  mode: all
+  selector:
+    namespaces:
+      - perimeter-test
+    labelSelectors:
+      app: recommendation-engine
+  stressors:
+    cpu:
+      workers: 4
+      load: 100
+    memory:
+      workers: 1
+      size: "512MB"
+  duration: "90s"

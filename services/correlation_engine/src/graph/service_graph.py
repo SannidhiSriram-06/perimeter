@@ -159,6 +159,10 @@ class ServiceDependencyGraph:
         }
 
         for span in spans:
+            svc = span.get("service_name")
+            if svc:
+                self._graph.add_node(svc)
+
             parent_id = span.get("parent_span_id")
             if parent_id and parent_id in span_by_id:
                 parent_span = span_by_id[parent_id]

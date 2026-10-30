@@ -84,7 +84,8 @@ def validate_draft(
     for service in hyp.cascade_path:
         if service not in blast:
             issues.append(DraftIssue("cascade_path_in_blast_radius", f"{service} is outside the blast radius"))
-    for a, b in zip(hyp.cascade_path, hyp.cascade_path[1:], strict=False):
+    for i in range(len(hyp.cascade_path) - 1):
+        a, b = hyp.cascade_path[i], hyp.cascade_path[i + 1]
         if (a, b) not in edges and (b, a) not in edges:
             issues.append(DraftIssue("cascade_path_connected", f"no trace edge between {a} and {b}"))
 

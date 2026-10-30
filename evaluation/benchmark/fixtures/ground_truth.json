@@ -1,0 +1,114 @@
+{
+  "scenarios": [
+    {
+      "scenario_id": "chaos-sc-01-payment-gateway-upstream",
+      "title": "Payment Gateway Pod Failure (Upstream Blast Radius)",
+      "injected_fault": {
+        "fault_type": "PodChaos",
+        "action": "pod-kill",
+        "target_service": "payment-gateway",
+        "environment": "controlled_test_environment",
+        "parameters": {
+          "grace_period_seconds": 0,
+          "duration_seconds": 60
+        }
+      },
+      "origin_service": "payment-gateway",
+      "direction": "upstream",
+      "max_depth": 3,
+      "expected_services": [
+        "payment-gateway",
+        "checkout-service",
+        "frontend-proxy"
+      ],
+      "excluded_services": [
+        "inventory-service",
+        "recommendation-engine"
+      ]
+    },
+    {
+      "scenario_id": "chaos-sc-01-payment-gateway-both",
+      "title": "Payment Gateway Pod Failure (Full Blast Radius)",
+      "injected_fault": {
+        "fault_type": "PodChaos",
+        "action": "pod-kill",
+        "target_service": "payment-gateway",
+        "environment": "controlled_test_environment",
+        "parameters": {
+          "grace_period_seconds": 0,
+          "duration_seconds": 60
+        }
+      },
+      "origin_service": "payment-gateway",
+      "direction": "both",
+      "max_depth": 3,
+      "expected_services": [
+        "payment-gateway",
+        "checkout-service",
+        "bank-network",
+        "inventory-service",
+        "frontend-proxy"
+      ],
+      "excluded_services": [
+        "recommendation-engine"
+      ]
+    },
+    {
+      "scenario_id": "chaos-sc-02-bank-network-upstream",
+      "title": "Bank Network Latency Injection (Upstream Callers)",
+      "injected_fault": {
+        "fault_type": "NetworkChaos",
+        "action": "delay",
+        "target_service": "bank-network",
+        "environment": "controlled_test_environment",
+        "parameters": {
+          "latency_ms": 4000,
+          "jitter_ms": 500,
+          "duration_seconds": 120
+        }
+      },
+      "origin_service": "bank-network",
+      "direction": "upstream",
+      "max_depth": 3,
+      "expected_services": [
+        "bank-network",
+        "payment-gateway",
+        "checkout-service",
+        "frontend-proxy"
+      ],
+      "excluded_services": [
+        "inventory-service",
+        "recommendation-engine"
+      ]
+    },
+    {
+      "scenario_id": "chaos-sc-03-recommendation-engine-noise",
+      "title": "Recommendation Engine Noisy Neighbor CPU Stress",
+      "injected_fault": {
+        "fault_type": "StressChaos",
+        "action": "stress-cpu",
+        "target_service": "recommendation-engine",
+        "environment": "controlled_test_environment",
+        "parameters": {
+          "workers": 4,
+          "cpu_load_pct": 100,
+          "memory_mb": 512,
+          "duration_seconds": 90
+        }
+      },
+      "origin_service": "recommendation-engine",
+      "direction": "both",
+      "max_depth": 3,
+      "expected_services": [
+        "recommendation-engine"
+      ],
+      "excluded_services": [
+        "frontend-proxy",
+        "checkout-service",
+        "payment-gateway",
+        "bank-network",
+        "inventory-service"
+      ]
+    }
+  ]
+}
