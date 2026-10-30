@@ -5,6 +5,7 @@ This page defines what goes into the single LLM call and what must come back. It
 ## Rules for the call
 
 - One call per incident. Temperature 0. Output must be JSON that matches the schema below, nothing else.
+- The call goes to Groq (free tier) with `openai/gpt-oss-120b` and strict structured outputs. Strict mode needs every field present, so fields that do not apply to a claim type are sent as `null`. The free tier allows 8K tokens per minute for this model, which is why the context object has a token budget.
 - The model sees only the **context object**. It never sees raw logs, the database, or other incidents.
 - Every statement of fact in the output is a **claim** that cites evidence IDs from the context object. Free text without a claim is allowed only in `narrative` fields and carries no factual weight.
 - The validator never edits the output. It marks each claim `supported` or `unsupported` and the dashboard shows the flags to the human reviewer.

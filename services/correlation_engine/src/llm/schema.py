@@ -4,7 +4,7 @@
 """
 
 from datetime import datetime
-from typing import List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -55,3 +55,29 @@ class Draft(_Strict):
     hypothesis: Hypothesis
     claims: List[Claim] = Field(..., max_length=30)
     postmortem: Postmortem
+
+
+# Keywords Groq's strict mode does not document. They are removed from the schema sent to the API; Draft still enforces
+# them locally when the answer is validated.
+_UNSENT_KEYWORDS = {"title", "default", "format", "minLength", "maxLength", "minItems", "maxItems"}
+
+
+def strict_json_schema() -> Dict[str, Any]:
+    """The Draft schema in the shape strict structured outputs accept.
+
+    Every object lists all of its properties as required and forbids extras. A field that does not apply to a claim
+    type (for example `status_code` on a `causal_edge`) is sent as null, which Draft allows.
+    """
+
+    def clean(node: Any) -> Any:
+        if isinstance(node, list):
+            return [clean(item) for item in node]
+        if not isinstance(node, dict):
+            return node
+        out = {k: clean(v) for k, v in node.items() if k not in _UNSENT_KEYWORDS or k == "properties"}
+        if isinstance(out.get("properties"), dict):
+            out["required"] = list(out["properties"])
+            out["additionalProperties"] = False
+        return out
+
+    return clean(Draft.model_json_schema())
