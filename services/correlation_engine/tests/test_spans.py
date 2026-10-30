@@ -83,3 +83,13 @@ def test_wide_fan_out_and_big_cycle() -> None:
     for i in range(2_000):
         ring.add_trace_edge(f"r{i}", f"r{(i + 1) % 2_000}")
     assert len(ring.get_blast_radius("r0", max_depth=5_000)) == 2_000
+
+
+def test_isolated_service_without_edges_is_retained_as_node() -> None:
+    """Isolated services in trace spans without caller/callee edges are retained as nodes."""
+    graph = ServiceDependencyGraph()
+    graph.load_spans([span("1", None, "recommendation-engine")])
+    assert edges(graph) == {}
+    assert "recommendation-engine" in graph.graph.nodes
+    assert graph.get_blast_radius("recommendation-engine") == ["recommendation-engine"]
+
