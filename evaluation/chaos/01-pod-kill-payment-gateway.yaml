@@ -1,0 +1,17 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: pod-kill-payment-gateway
+  namespace: perimeter-test
+  labels:
+    perimeter.io/scenario: "chaos-sc-01"
+    perimeter.io/environment: "controlled-test"
+spec:
+  action: pod-kill
+  mode: all
+  selector:
+    namespaces:
+      - perimeter-test
+    labelSelectors:
+      app: payment-gateway
+  gracePeriod: 0

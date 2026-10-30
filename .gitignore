@@ -69,3 +69,6 @@ htmlcov/
 
 # Codacy local tool config
 .codacy/
+
+# Benchmark evaluation results
+evaluation/benchmark/results/

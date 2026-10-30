@@ -1,0 +1,21 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-latency-bank-network
+  namespace: perimeter-test
+  labels:
+    perimeter.io/scenario: "chaos-sc-02"
+    perimeter.io/environment: "controlled-test"
+spec:
+  action: delay
+  mode: all
+  selector:
+    namespaces:
+      - perimeter-test
+    labelSelectors:
+      app: bank-network
+  delay:
+    latency: "4000ms"
+    jitter: "500ms"
+  direction: to
+  duration: "120s"

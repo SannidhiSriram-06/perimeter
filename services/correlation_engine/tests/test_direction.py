@@ -38,6 +38,20 @@ def test_both_directions_covers_callers_and_callees() -> None:
     assert "recommendation-engine" not in radius
 
 
+def test_both_from_middle_node_does_not_mix_directions_at_each_hop() -> None:
+    # payment-gateway: upstream is checkout-service -> frontend-proxy; downstream is bank-network.
+    # It must not bleed laterally into checkout-service's other downstream callee (inventory-service).
+    radius = mock_graph().get_blast_radius("payment-gateway", direction="both")
+    assert "inventory-service" not in radius
+    assert set(radius) == {
+        "payment-gateway",
+        "checkout-service",
+        "frontend-proxy",
+        "bank-network",
+    }
+
+
+
 def test_upstream_respects_depth_and_cycles() -> None:
     graph = ServiceDependencyGraph()
     graph.add_trace_edge("a", "b")
