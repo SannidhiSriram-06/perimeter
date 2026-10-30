@@ -1,20 +1,25 @@
 """Unit and integration tests for the evaluation benchmark scorer."""
 
 from pathlib import Path
+import sys
 import unittest
 
-from src.eval.scorer import (
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from evaluation.benchmark.scorer import (  # noqa: E402
     calculate_metrics,
     evaluate_all_fixtures,
     evaluate_scenario,
     score_blast_radius,
 )
-from src.graph.service_graph import ServiceDependencyGraph
-from src.mock.fixtures import get_sample_trace_spans
+from src.graph.service_graph import ServiceDependencyGraph  # noqa: E402
+from src.mock.fixtures import get_sample_trace_spans  # noqa: E402
 
 
 class TestEvaluationScorer(unittest.TestCase):
-    """Test suite validating metric accuracy and chaos benchmark scoring."""
+    """Test suite validating metric accuracy, excluded services, and chaos benchmark scoring."""
 
     def test_perfect_match(self) -> None:
         """Verify identical expected and found services yield 1.0 for all metrics."""
@@ -27,6 +32,7 @@ class TestEvaluationScorer(unittest.TestCase):
         self.assertEqual(metrics["f1_score"], 1.0)
         self.assertEqual(metrics["false_positives"], [])
         self.assertEqual(metrics["false_negatives"], [])
+        self.assertEqual(metrics["excluded_violations"], [])
 
     def test_partial_match_metrics(self) -> None:
         """Verify calculation with both false positives and false negatives."""
@@ -59,6 +65,36 @@ class TestEvaluationScorer(unittest.TestCase):
         self.assertEqual(metrics["recall"], 1.0)
         self.assertEqual(metrics["f1_score"], 1.0)
 
+    def test_enforce_excluded_services_fails_on_violation(self) -> None:
+        """Verify presence of an excluded service fails the evaluation even if score is high."""
+        expected = ["svc-a", "svc-b"]
+        found = ["svc-a", "svc-b", "unrelated-noise"]
+        excluded = ["unrelated-noise"]
+
+        report = score_blast_radius(
+            expected_services=expected,
+            found_services=found,
+            excluded_services=excluded,
+            threshold=0.6,
+        )
+        self.assertFalse(report["passed"])
+        self.assertEqual(report["excluded_violations"], ["unrelated-noise"])
+
+    def test_enforce_excluded_services_passes_when_clean(self) -> None:
+        """Verify evaluation passes when none of the excluded services appear."""
+        expected = ["svc-a", "svc-b"]
+        found = ["svc-a", "svc-b"]
+        excluded = ["unrelated-noise"]
+
+        report = score_blast_radius(
+            expected_services=expected,
+            found_services=found,
+            excluded_services=excluded,
+            threshold=0.8,
+        )
+        self.assertTrue(report["passed"])
+        self.assertEqual(report["excluded_violations"], [])
+
     def test_score_blast_radius_report_structure(self) -> None:
         """Verify ground-truth result JSON schema fields and controlled environment label."""
         injected = {
@@ -70,6 +106,7 @@ class TestEvaluationScorer(unittest.TestCase):
         report = score_blast_radius(
             expected_services=["payment-gateway", "checkout-service"],
             found_services=["payment-gateway", "checkout-service"],
+            excluded_services=["recommendation-engine"],
             injected_fault=injected,
             scenario_id="chaos-sc-01",
             threshold=0.8,
@@ -81,6 +118,7 @@ class TestEvaluationScorer(unittest.TestCase):
         self.assertTrue(report["passed"])
         self.assertEqual(report["precision"], 1.0)
         self.assertEqual(report["recall"], 1.0)
+        self.assertEqual(report["excluded_violations"], [])
         self.assertIn("timestamp", report)
 
     def test_scenario_evaluation_threshold_failure(self) -> None:
@@ -95,8 +133,8 @@ class TestEvaluationScorer(unittest.TestCase):
         self.assertFalse(report["passed"])
         self.assertLess(report["recall"], 0.8)
 
-    def test_chaos_scenario_01_on_mock_spans(self) -> None:
-        """Verify Scenario 1: payment-gateway upstream blast radius against mock spans."""
+    def test_chaos_scenario_01_upstream_on_mock_spans(self) -> None:
+        """Verify Scenario 1 upstream: payment-gateway callers against mock spans."""
         graph = ServiceDependencyGraph()
         graph.load_spans(get_sample_trace_spans())
 
@@ -106,15 +144,43 @@ class TestEvaluationScorer(unittest.TestCase):
             max_depth=3,
         )
         expected = ["payment-gateway", "checkout-service", "frontend-proxy"]
+        excluded = ["inventory-service", "recommendation-engine"]
 
         result = score_blast_radius(
             expected_services=expected,
             found_services=found,
+            excluded_services=excluded,
             scenario_id="chaos-sc-01-payment-gateway-upstream",
         )
         self.assertTrue(result["passed"])
         self.assertEqual(result["precision"], 1.0)
         self.assertEqual(result["recall"], 1.0)
+        self.assertEqual(result["excluded_violations"], [])
+
+    def test_chaos_scenario_01_both_excludes_inventory_service(self) -> None:
+        """Verify Scenario 1 both: union of callers and callees excludes inventory-service."""
+        graph = ServiceDependencyGraph()
+        graph.load_spans(get_sample_trace_spans())
+
+        found = graph.get_blast_radius(
+            origin_service="payment-gateway",
+            direction="both",
+            max_depth=3,
+        )
+        expected = ["payment-gateway", "checkout-service", "bank-network", "frontend-proxy"]
+        excluded = ["inventory-service", "recommendation-engine"]
+
+        result = score_blast_radius(
+            expected_services=expected,
+            found_services=found,
+            excluded_services=excluded,
+            scenario_id="chaos-sc-01-payment-gateway-both",
+        )
+        self.assertTrue(result["passed"])
+        self.assertEqual(result["precision"], 1.0)
+        self.assertEqual(result["recall"], 1.0)
+        self.assertEqual(result["excluded_violations"], [])
+        self.assertNotIn("inventory-service", found)
 
     def test_chaos_scenario_02_on_mock_spans(self) -> None:
         """Verify Scenario 2: bank-network upstream callers against mock spans."""
@@ -132,15 +198,18 @@ class TestEvaluationScorer(unittest.TestCase):
             "checkout-service",
             "frontend-proxy",
         ]
+        excluded = ["inventory-service", "recommendation-engine"]
 
         result = score_blast_radius(
             expected_services=expected,
             found_services=found,
+            excluded_services=excluded,
             scenario_id="chaos-sc-02-bank-network-upstream",
         )
         self.assertTrue(result["passed"])
         self.assertEqual(result["precision"], 1.0)
         self.assertEqual(result["recall"], 1.0)
+        self.assertEqual(result["excluded_violations"], [])
 
     def test_chaos_scenario_03_noisy_neighbor_isolation(self) -> None:
         """Verify Scenario 3: recommendation-engine stress isolates without false positives."""
@@ -153,20 +222,27 @@ class TestEvaluationScorer(unittest.TestCase):
             max_depth=3,
         )
         expected = ["recommendation-engine"]
+        excluded = [
+            "frontend-proxy",
+            "checkout-service",
+            "payment-gateway",
+            "bank-network",
+            "inventory-service",
+        ]
 
         result = score_blast_radius(
             expected_services=expected,
             found_services=found,
+            excluded_services=excluded,
             scenario_id="chaos-sc-03-recommendation-engine-noise",
         )
         self.assertTrue(result["passed"])
         self.assertEqual(result["precision"], 1.0)
         self.assertEqual(result["recall"], 1.0)
-        self.assertNotIn("checkout-service", result["found_services"])
-        self.assertNotIn("frontend-proxy", result["found_services"])
+        self.assertEqual(result["excluded_violations"], [])
 
     def test_evaluate_all_fixtures_runner(self) -> None:
-        """Verify all ground-truth scenarios load and pass cleanly."""
+        """Verify all ground-truth scenarios load and pass cleanly with zero exclusions."""
         fixture_path = (
             Path(__file__).resolve().parents[3]
             / "evaluation"
@@ -180,4 +256,5 @@ class TestEvaluationScorer(unittest.TestCase):
             self.assertTrue(res["passed"], f"Scenario {res['scenario_id']} failed")
             self.assertEqual(res["precision"], 1.0)
             self.assertEqual(res["recall"], 1.0)
+            self.assertEqual(res["excluded_violations"], [])
             self.assertEqual(res["environment"], "controlled_test_environment")

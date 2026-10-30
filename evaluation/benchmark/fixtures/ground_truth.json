@@ -46,10 +46,10 @@
         "payment-gateway",
         "checkout-service",
         "bank-network",
-        "inventory-service",
         "frontend-proxy"
       ],
       "excluded_services": [
+        "inventory-service",
         "recommendation-engine"
       ]
     },

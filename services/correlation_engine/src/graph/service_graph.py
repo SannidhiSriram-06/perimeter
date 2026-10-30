@@ -110,6 +110,17 @@ class ServiceDependencyGraph:
         if not self._graph.has_node(origin_service) or max_depth < 0:
             return []
 
+        if direction == "both":
+            downstream = self.get_blast_radius(origin_service, max_depth=max_depth, direction="downstream")
+            upstream = self.get_blast_radius(origin_service, max_depth=max_depth, direction="upstream")
+            seen = set(downstream)
+            combined = list(downstream)
+            for s in upstream:
+                if s not in seen:
+                    seen.add(s)
+                    combined.append(s)
+            return combined
+
         visited: Set[str] = {origin_service}
         impacted_order: List[str] = [origin_service]
         queue: deque = deque([(origin_service, 0)])

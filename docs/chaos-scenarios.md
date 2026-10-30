@@ -4,6 +4,10 @@
 > **Controlled Test Environment Notice**:
 > All chaos engineering experiments and fault injection scenarios documented in this file are designed, configured, and executed **strictly within a controlled, synthetic test environment** (local Minikube / isolated staging Kubernetes cluster). They simulate realistic microservice failure modes for offline validation and **never target production systems**.
 
+> [!NOTE]
+> **Draft Manifest Status**:
+> The Chaos Mesh manifests target namespace `perimeter-test` and selector labels (`app=`) that will be finalized once the hand-instrumented test microservice deployments land in the cluster (which currently uses `perimeter`). Additionally, `bank-network` is modeled as an external simulator in mock telemetry traces, so `NetworkChaos` will target its containerized stub deployment once provisioned in Kubernetes.
+
 ---
 
 ## 1. Overview & Service Call Topology
@@ -63,11 +67,11 @@ flowchart TD
     `["payment-gateway", "checkout-service", "frontend-proxy"]`
   - **`downstream`** (callees reachable from target):
     `["payment-gateway", "bank-network"]`
-  - **`both`** (full causal neighborhood within max_depth=3):
-    `["payment-gateway", "checkout-service", "bank-network", "inventory-service", "frontend-proxy"]`
+  - **`both`** (union of upstream callers and downstream callees):
+    `["payment-gateway", "checkout-service", "bank-network", "frontend-proxy"]`
 * **Negative Controls (Must NOT be in blast radius)**:
+  - `inventory-service` (healthy sibling returning 200 OK; unaffected by payment-gateway failure)
   - `recommendation-engine` (completely disconnected service across all directions)
-  - `inventory-service` (when querying `upstream` from `payment-gateway`, as inventory does not call payments)
 
 #### Chaos Mesh Manifest
 ```yaml
@@ -202,7 +206,7 @@ This matrix serves as the deterministic evaluation baseline for the correlation 
 | Scenario ID | Fault Type | Target Service | Origin Service | Traversal Direction | Expected Blast Radius (Ground Truth) | Excluded Services (Negative Controls) |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | `chaos-sc-01` | `PodChaos` | `payment-gateway` | `payment-gateway` | `upstream` | `["payment-gateway", "checkout-service", "frontend-proxy"]` | `inventory-service`, `recommendation-engine` |
-| `chaos-sc-01` | `PodChaos` | `payment-gateway` | `payment-gateway` | `both` | `["payment-gateway", "checkout-service", "bank-network", "inventory-service", "frontend-proxy"]` | `recommendation-engine` |
+| `chaos-sc-01` | `PodChaos` | `payment-gateway` | `payment-gateway` | `both` | `["payment-gateway", "checkout-service", "bank-network", "frontend-proxy"]` | `inventory-service`, `recommendation-engine` |
 | `chaos-sc-02` | `NetworkChaos` | `bank-network` | `bank-network` | `upstream` | `["bank-network", "payment-gateway", "checkout-service", "frontend-proxy"]` | `inventory-service`, `recommendation-engine` |
 | `chaos-sc-02` | `NetworkChaos` | `bank-network` | `bank-network` | `both` | `["bank-network", "payment-gateway", "checkout-service", "frontend-proxy"]` | `inventory-service`, `recommendation-engine` |
 | `chaos-sc-03` | `StressChaos` | `recommendation-engine` | `recommendation-engine` | `both` | `["recommendation-engine"]` | `frontend-proxy`, `checkout-service`, `payment-gateway`, `bank-network`, `inventory-service` |
