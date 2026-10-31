@@ -39,6 +39,10 @@ Built by the signal compressor from the blast radius. All IDs are stable strings
 
 `evidence.kind` is `span`, `log` or `metric`. Logs carry `timestamp` and `message`; metrics carry `name`, `value` and `timestamp`. The compressor keeps the total under the token budget; the validator receives the same object, so it checks against exactly what the model saw.
 
+The pipeline builds this object without the signal compressor for now: one slowest span per service in the blast radius plus the trace edges between them, with no logs or metrics. The compressor replaces that step later; the shape does not change.
+
+Blast radius size: the alert webhook asks the engine for `both` directions, so an alert on `checkout-service` covers five services in the mock graph (callers like `frontend-proxy` and callees down to `bank-network`). The proposal's walkthrough lists three services; it is a simplified illustration and the mock graph, the benchmark's ground truth and the chaos scenarios all use the fuller six-service topology.
+
 Services outside `blast_radius` (for example `recommendation-engine` in the mock data, which has errors but no trace edge to checkout) are not in the context at all.
 
 ## Output schema (JSON Schema, draft 2020-12)

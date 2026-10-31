@@ -5,6 +5,8 @@ import { unauthorized, wrap } from '../http';
 
 const MAX_ALERTS_PER_REQUEST = 100;
 const ENGINE_TIMEOUT_MS = 5000;
+// One model call plus fact-checking; Groq answers in a few seconds, so this only guards against a hung request.
+const DRAFT_TIMEOUT_MS = 60_000;
 
 interface Alert {
   status?: unknown;
@@ -45,6 +47,41 @@ async function blastRadius(engineUrl: string, service: string): Promise<string[]
   }
 }
 
+interface DraftReply {
+  status?: string;
+  draft?: unknown;
+  validation?: unknown;
+  error?: string | null;
+}
+
+/**
+ * Asks the engine for a root-cause draft and saves it on the incident. Runs after the webhook has answered, so a slow
+ * or missing model never delays or loses an alert. `ok` and `flagged` drafts are saved; anything else leaves
+ * root_cause_draft empty and is logged.
+ */
+async function saveDraft(pool: Pool, engineUrl: string, incidentId: string, alertname: string, service: string) {
+  try {
+    const res = await fetch(`${engineUrl}/draft`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ incident_id: incidentId, alertname, service, fired_at: new Date().toISOString() }),
+      signal: AbortSignal.timeout(DRAFT_TIMEOUT_MS),
+    });
+    if (!res.ok) throw new Error(`engine answered ${res.status}`);
+    const reply = (await res.json()) as DraftReply;
+    if ((reply.status !== 'ok' && reply.status !== 'flagged') || !reply.draft) {
+      console.error('No draft for incident %s: %s %s', incidentId, reply.status, reply.error ?? '');
+      return;
+    }
+    await pool.query('UPDATE incidents SET root_cause_draft = $1 WHERE id = $2', [
+      JSON.stringify({ status: reply.status, draft: reply.draft, validation: reply.validation }),
+      incidentId,
+    ]);
+  } catch (err) {
+    console.error('Draft failed for incident %s: %s', incidentId, (err as Error).message);
+  }
+}
+
 /**
  * POST /api/v1/alerts/webhook: Alertmanager sends alerts here.
  * Each firing alert becomes an incident row holding its blast radius. If the engine is down the incident is still
@@ -75,6 +112,8 @@ export function alertsRouter(pool: Pool, engineUrl: string, webhookSecret: strin
          RETURNING id`,
         [`${alertname} on ${service}`, radius ? 'open' : 'correlation_failed', service, JSON.stringify(radius ?? [])]
       );
+      // Only correlated incidents get a draft; the draft runs in the background and never blocks the response.
+      if (radius) void saveDraft(pool, engineUrl, rows[0].id, alertname, service);
       return rows[0].id;
     }));
 

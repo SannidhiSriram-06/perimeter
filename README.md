@@ -48,10 +48,11 @@ Green components exist in the repository today. Grey components are planned. See
 | Dockerfiles and a full local Compose stack (Postgres, engine, BFF) | Built |
 | CI: tests with coverage gate, lint, security scans, image builds | Built |
 | Signal compressor (rank and trim to token budget) | Planned |
-| LLM root-cause draft and fact-checking validator | Planned |
+| LLM root-cause draft and fact-checking validator (engine `POST /draft`, saved on the incident by the webhook; needs `GROQ_API_KEY`) | Built, tested with a scripted model |
 | React dashboards | Planned |
 | On-call router and Telegram bot | Planned |
-| Chaos fault injection and accuracy benchmark | Planned |
+| Chaos scenarios, ground truth and accuracy benchmark scorer | Built |
+| Live chaos fault injection harness | Planned |
 | Terraform, ArgoCD, Vault, ECR deployment | Planned |
 
 ## Quick start
