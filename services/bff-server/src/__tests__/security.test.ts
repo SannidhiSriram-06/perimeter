@@ -1,4 +1,4 @@
-import { after, before, describe, test } from 'node:test';
+import { after, before, describe, mock, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { AddressInfo } from 'net';
 import { Server } from 'http';
@@ -53,10 +53,17 @@ describe('trust proxy and rate limits', () => {
   });
 
   test('without a trusted proxy, a forged X-Forwarded-For cannot dodge the limit', async () => {
+    // express-rate-limit logs an ERR_ERL_UNEXPECTED_X_FORWARDED_FOR warning for exactly this forged header. That is the
+    // behaviour under test, so keep it out of the test output.
+    const logged = mock.method(console, 'error', () => undefined);
     const { server, base } = await start({});
-    for (let i = 0; i < 10; i++) await failLogin(base, `203.0.113.${i}`);
-    assert.equal((await failLogin(base, '203.0.113.99')).status, 429);
-    server.close();
+    try {
+      for (let i = 0; i < 10; i++) await failLogin(base, `203.0.113.${i}`);
+      assert.equal((await failLogin(base, '203.0.113.99')).status, 429);
+    } finally {
+      logged.mock.restore();
+      server.close();
+    }
   });
 });
 

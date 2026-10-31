@@ -1,4 +1,4 @@
-import { after, before, describe, test } from 'node:test';
+import { after, before, describe, mock, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { AddressInfo } from 'net';
 import http, { Server } from 'http';
@@ -20,6 +20,8 @@ describe('alert webhook', { skip: skipWithoutDb }, () => {
   let bff: Server;
   let base: string;
   let engineUp = true;
+  const drafts: string[] = [];
+  let draftReply: object = { status: 'ok', draft: { incident_id: 'x' }, validation: { claims: [], issues: [], timeline_warnings: [] } };
   const created: string[] = [];
 
   before(async () => {
@@ -33,8 +35,13 @@ describe('alert webhook', { skip: skipWithoutDb }, () => {
       let body = '';
       req.on('data', (c) => (body += c));
       req.on('end', () => {
-        const { service } = JSON.parse(body);
+        const { service, incident_id: incidentId } = JSON.parse(body);
         res.writeHead(200, { 'content-type': 'application/json' });
+        if (req.url === '/draft') {
+          drafts.push(incidentId);
+          res.end(JSON.stringify(draftReply));
+          return;
+        }
         res.end(JSON.stringify({ origin_service: service, impacted_services: [service, 'payment-gateway'] }));
       });
     });
@@ -45,6 +52,8 @@ describe('alert webhook', { skip: skipWithoutDb }, () => {
   });
 
   after(async () => {
+    // Drafts are saved after the webhook answers; let any still in flight finish before the rows and the pool go away.
+    await new Promise((resolve) => setTimeout(resolve, 300));
     if (created.length) await pool.query('DELETE FROM incidents WHERE id = ANY($1::uuid[])', [created]);
     bff.close();
     engine.close();
@@ -105,6 +114,41 @@ describe('alert webhook', { skip: skipWithoutDb }, () => {
       created.push(...incident_ids);
       const { rows } = await pool.query('SELECT alert_service_id FROM incidents WHERE id = $1', [incident_ids[0]]);
       assert.equal(rows[0].alert_service_id, service);
+    }
+  });
+
+  const draftOf = async (id: string) => {
+    for (let i = 0; i < 50; i++) {
+      const { rows } = await pool.query('SELECT root_cause_draft FROM incidents WHERE id = $1', [id]);
+      if (rows[0].root_cause_draft) return JSON.parse(rows[0].root_cause_draft);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    return null;
+  };
+
+  test('saves the engine\'s checked draft on the incident after answering', async () => {
+    const res = await post({ alerts: [alert('checkout-service')] });
+    const { incident_ids } = (await res.json()) as { incident_ids: string[] };
+    created.push(...incident_ids);
+    const saved = await draftOf(incident_ids[0]);
+    assert.equal(saved.status, 'ok');
+    assert.deepEqual(saved.draft, { incident_id: 'x' });
+    assert.ok(drafts.includes(incident_ids[0]), 'the engine was asked to draft this incident');
+  });
+
+  test('leaves root_cause_draft empty when the model produced no usable draft', async () => {
+    const original = draftReply;
+    draftReply = { status: 'llm_error', draft: null, validation: null, error: 'no credentials' };
+    const logged = mock.method(console, 'error', () => undefined);
+    try {
+      const res = await post({ alerts: [alert('checkout-service')] });
+      const { incident_ids } = (await res.json()) as { incident_ids: string[] };
+      created.push(...incident_ids);
+      assert.equal(res.status, 202);
+      assert.equal(await draftOf(incident_ids[0]), null);
+    } finally {
+      logged.mock.restore();
+      draftReply = original;
     }
   });
 
