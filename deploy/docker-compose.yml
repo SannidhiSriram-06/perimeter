@@ -24,6 +24,10 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:${CORRELATION_ENGINE_PORT:-8000}:8000"
+    environment:
+      # Optional. Without a key the engine still correlates; incidents just get no root-cause draft.
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      PERIMETER_LLM_MODEL: ${PERIMETER_LLM_MODEL:-openai/gpt-oss-120b}
 
   bff:
     build: ../services/bff-server

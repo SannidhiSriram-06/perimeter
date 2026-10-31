@@ -1,5 +1,6 @@
 """LLM draft contract, prompt, client and the fact-checking validator."""
 
+from .context import build_context
 from .client import DEFAULT_MODEL, GroqClient, LLMClient, LLMError, ScriptedClient
 from .draft import DraftOutcome, generate_draft
 from .prompt import SYSTEM_PROMPT, build_prompt
@@ -19,6 +20,7 @@ __all__ = [
     "SYSTEM_PROMPT",
     "ScriptedClient",
     "ValidationResult",
+    "build_context",
     "build_prompt",
     "generate_draft",
     "validate_draft",
