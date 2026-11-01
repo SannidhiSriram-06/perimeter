@@ -77,7 +77,7 @@ Services outside `blast_radius` (for example `recommendation-engine` in the mock
           "id": {"type": "string"},
           "type": {"enum": ["service_ref", "causal_edge", "metric_value", "latency", "status_code", "timestamp"]},
           "text": {"type": "string", "maxLength": 300},
-          "evidence_ids": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+          "evidence_ids": {"type": "array", "items": {"type": "string"}},
           "service": {"type": "string"},
           "source": {"type": "string"},
           "target": {"type": "string"},
@@ -104,7 +104,7 @@ Services outside `blast_radius` (for example `recommendation-engine` in the mock
             "properties": {
               "time": {"type": "string", "format": "date-time"},
               "event": {"type": "string", "maxLength": 300},
-              "claim_ids": {"type": "array", "items": {"type": "string"}, "minItems": 1}
+              "claim_ids": {"type": "array", "items": {"type": "string"}}
             }
           }
         },
@@ -135,7 +135,7 @@ Extra rules that apply to the whole draft:
 
 1. `hypothesis.root_cause_service` and every entry in `cascade_path` must be in `blast_radius`.
 2. Consecutive services in `cascade_path` must be connected by a `trace_edges` entry.
-3. Every `postmortem.timeline[].claim_ids` entry must refer to a claim in `claims`, and that claim must be `supported` for the timeline row to show without a warning.
+3. Every `postmortem.timeline[].claim_ids` entry must refer to a claim in `claims`, and that claim must be `supported` for the timeline row to show without a warning. A row with no `claim_ids` also gets the warning, and a claim with no `evidence_ids` is unsupported. The model API ignores `minItems`, so these are flagged instead of rejecting the whole draft.
 4. Any service name in free text that is not in `blast_radius` is flagged (simple string match against the known service list).
 
 ## Worked example
