@@ -320,3 +320,24 @@ def test_without_an_alert_time_no_timestamp_claim_can_be_supported(context, draf
 def test_a_timestamp_without_a_zone_is_read_as_utc(context, draft) -> None:
     claim(draft, type="timestamp", timestamp="2026-10-12T16:00:03", evidence_ids=["log-1"])
     assert only(check(context, draft)).supported
+
+
+# --- empty citation lists: flagged, not rejected (the model API ignores minItems) ----------------------
+
+
+def test_timeline_row_without_claim_ids_is_a_warning_not_a_rejection(context, draft) -> None:
+    draft["postmortem"]["timeline"][0]["claim_ids"] = []
+    result = check(context, draft)
+    assert result.timeline_warnings == [0]
+    assert not result.ok
+
+
+def test_claim_without_evidence_is_unsupported(context, draft) -> None:
+    draft["claims"][2]["evidence_ids"] = []
+    result = check(context, draft)
+    assert only_claim(result, "c3").supported is False
+    assert "no evidence" in only_claim(result, "c3").reasons[0]
+
+
+def only_claim(result, claim_id):
+    return next(c for c in result.claims if c.id == claim_id)
