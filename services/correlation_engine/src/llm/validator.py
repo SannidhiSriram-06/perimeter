@@ -93,7 +93,7 @@ def validate_draft(
         missing = [cid for cid in row.claim_ids if cid not in by_id]
         for cid in missing:
             issues.append(DraftIssue("timeline_claim_exists", f"timeline row {i} cites unknown claim {cid}"))
-        if missing or any(not by_id[cid].supported for cid in row.claim_ids if cid in by_id):
+        if not row.claim_ids or missing or any(not by_id[cid].supported for cid in row.claim_ids if cid in by_id):
             warnings.append(i)
 
     if known_services is not None:
@@ -132,6 +132,8 @@ def _check_claim(
     edge_ids: set,
     window: Optional[tuple],
 ) -> ClaimResult:
+    if not claim.evidence_ids:
+        return ClaimResult(claim.id, False, ["cites no evidence"])
     unknown = [eid for eid in claim.evidence_ids if eid not in evidence and eid not in edge_ids]
     if unknown:
         return ClaimResult(claim.id, False, [f"cites evidence that is not in the context: {', '.join(unknown)}"])

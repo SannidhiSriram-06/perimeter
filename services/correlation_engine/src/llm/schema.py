@@ -26,7 +26,7 @@ class Claim(_Strict):
     id: str
     type: ClaimType
     text: str = Field(..., max_length=300)
-    evidence_ids: List[str] = Field(..., min_length=1)
+    evidence_ids: List[str]  # may be empty: the model API ignores minItems, so the validator marks such a claim unsupported
     service: Optional[str] = None
     source: Optional[str] = None
     target: Optional[str] = None
@@ -39,7 +39,7 @@ class Claim(_Strict):
 class TimelineEntry(_Strict):
     time: datetime
     event: str = Field(..., max_length=300)
-    claim_ids: List[str] = Field(..., min_length=1)
+    claim_ids: List[str]  # may be empty: the validator warns on the row instead of rejecting the whole draft
 
 
 class Postmortem(_Strict):
