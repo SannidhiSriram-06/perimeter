@@ -34,7 +34,6 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlsplit
 
 try:
     from datetime import UTC
@@ -71,14 +70,15 @@ CONTROLLED_ENV_DISCLAIMER = (
 
 DEFAULT_CORRELATION_URL = "http://127.0.0.1:8000"
 
+CORRELATION_ENDPOINTS: dict[str, str] = {
+    "http://127.0.0.1:8000": "http://127.0.0.1:8000/correlate",
+    "http://localhost:8000": "http://localhost:8000/correlate",
+    "http://127.0.0.1:59999": "http://127.0.0.1:59999/correlate",
+    "cluster": "http://perimeter-engine.perimeter.svc.cluster.local:8000/correlate",
+    "http://perimeter-engine.perimeter.svc.cluster.local:8000": "http://perimeter-engine.perimeter.svc.cluster.local:8000/correlate",
+}
+
 SAFE_NAMESPACE_REGEX = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
-ALLOWED_HOSTS = frozenset({
-    "127.0.0.1",
-    "localhost",
-    "0.0.0.0",
-    "perimeter-engine",
-    "perimeter-engine.perimeter.svc.cluster.local",
-})
 
 SCENARIO_MANIFEST_MAP: dict[str, str] = {
     "chaos-sc-01": "01-pod-kill-payment-gateway.yaml",
@@ -112,16 +112,18 @@ def validate_manifest_path(manifest_path: Path) -> Path:
     return resolved
 
 
-def validate_correlation_url(url: str) -> str:
-    """Validate correlation engine URL scheme and host against SSRF."""
-    parsed = urlsplit(url)
-    if parsed.scheme not in ("http", "https"):
-        raise ValueError(f"Invalid URL scheme '{parsed.scheme}': only http and https allowed.")
-    if parsed.hostname not in ALLOWED_HOSTS:
-        raise ValueError(
-            f"Correlation URL host '{parsed.hostname}' is not in allowed hosts: {sorted(ALLOWED_HOSTS)}"
-        )
-    return url.rstrip("/")
+def resolve_correlation_endpoint(raw_url: str = DEFAULT_CORRELATION_URL) -> str:
+    """Resolve correlation engine URL strictly against trusted static endpoints (SSRF prevention)."""
+    cleaned = raw_url.rstrip("/")
+    if cleaned in CORRELATION_ENDPOINTS:
+        return CORRELATION_ENDPOINTS[cleaned]
+    raise ValueError(
+        f"Correlation URL '{raw_url}' is not permitted. Permitted targets: {sorted(CORRELATION_ENDPOINTS.keys())}"
+    )
+
+
+# Alias for backward compatibility
+validate_correlation_url = resolve_correlation_endpoint
 
 
 def load_ground_truth(path: Path | None = None) -> list[dict[str, Any]]:
@@ -238,14 +240,13 @@ def execute_pipeline_live(
     correlation_url: str = DEFAULT_CORRELATION_URL,
 ) -> list[str]:
     """Execute the correlation pipeline against a live Correlation Engine instance."""
-    safe_base = validate_correlation_url(correlation_url)
-    url = f"{safe_base}/correlate"
+    endpoint = resolve_correlation_endpoint(correlation_url)
     payload = json.dumps(
         {"service": origin_service, "direction": direction, "max_depth": max_depth}
     ).encode("utf-8")
 
     req = urllib.request.Request(
-        url,
+        endpoint,
         data=payload,
         headers={"Content-Type": "application/json"},
         method="POST",
@@ -257,7 +258,7 @@ def execute_pipeline_live(
             return data.get("impacted_services", [])
     except urllib.error.URLError as e:
         raise ConnectionError(
-            f"Could not reach Correlation Engine at {url}: {e}. "
+            f"Could not reach Correlation Engine at {endpoint}: {e}. "
             "Ensure the engine is running or pass --dry-run for offline fixture evaluation."
         ) from e
 

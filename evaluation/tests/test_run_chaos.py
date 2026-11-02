@@ -270,8 +270,8 @@ class TestChaosHarness(unittest.TestCase):
 
     def test_validate_correlation_url(self) -> None:
         """Verify correlation URL validation prevents SSRF against arbitrary hosts."""
-        self.assertEqual(validate_correlation_url("http://127.0.0.1:8000"), "http://127.0.0.1:8000")
-        self.assertEqual(validate_correlation_url("http://localhost:8000/"), "http://localhost:8000")
+        self.assertEqual(validate_correlation_url("http://127.0.0.1:8000"), "http://127.0.0.1:8000/correlate")
+        self.assertEqual(validate_correlation_url("http://localhost:8000/"), "http://localhost:8000/correlate")
 
         with self.assertRaises(ValueError):
             validate_correlation_url("ftp://127.0.0.1:8000")
