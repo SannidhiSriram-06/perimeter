@@ -24,6 +24,9 @@ from evaluation.run_chaos import (
     resolve_scenarios,
     run_harness,
     run_single_scenario,
+    validate_correlation_url,
+    validate_manifest_path,
+    validate_namespace,
 )
 
 
@@ -239,6 +242,42 @@ class TestChaosHarness(unittest.TestCase):
             self.assertTrue(args.dry_run)
             self.assertEqual(args.wait, 10)
             self.assertEqual(args.namespace, "test-ns")
+
+
+    def test_validate_namespace(self) -> None:
+        """Verify namespace validation accepts RFC 1123 labels and rejects malicious inputs."""
+        self.assertEqual(validate_namespace("perimeter-test"), "perimeter-test")
+        self.assertEqual(validate_namespace("default"), "default")
+        with self.assertRaises(ValueError):
+            validate_namespace("invalid; rm -rf")
+        with self.assertRaises(ValueError):
+            validate_namespace("-invalid-start")
+        with self.assertRaises(ValueError):
+            validate_namespace("INVALID_UPPERCASE")
+
+    def test_validate_manifest_path(self) -> None:
+        """Verify manifest path validation ensures file is inside chaos directory."""
+        valid_manifest = REPO_ROOT / "evaluation" / "chaos" / "01-pod-kill-payment-gateway.yaml"
+        self.assertEqual(validate_manifest_path(valid_manifest), valid_manifest.resolve())
+
+        # Non-existent file
+        with self.assertRaises(FileNotFoundError):
+            validate_manifest_path(REPO_ROOT / "evaluation" / "chaos" / "missing.yaml")
+
+        # Path outside chaos dir
+        with self.assertRaises(ValueError):
+            validate_manifest_path(REPO_ROOT / "deploy" / "docker-compose.yml")
+
+    def test_validate_correlation_url(self) -> None:
+        """Verify correlation URL validation prevents SSRF against arbitrary hosts."""
+        self.assertEqual(validate_correlation_url("http://127.0.0.1:8000"), "http://127.0.0.1:8000")
+        self.assertEqual(validate_correlation_url("http://localhost:8000/"), "http://localhost:8000")
+
+        with self.assertRaises(ValueError):
+            validate_correlation_url("ftp://127.0.0.1:8000")
+
+        with self.assertRaises(ValueError):
+            validate_correlation_url("http://malicious-external-host.com")
 
 
 if __name__ == "__main__":

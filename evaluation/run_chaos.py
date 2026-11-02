@@ -25,19 +25,21 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+from urllib.parse import urlsplit
 
 try:
     from datetime import UTC
 except ImportError:  # pragma: no cover
     UTC = timezone.utc  # noqa: UP017
-from pathlib import Path
-from typing import Any
 
 # Setup paths relative to repo root
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -67,11 +69,59 @@ CONTROLLED_ENV_DISCLAIMER = (
     "(Minikube / staging). Experiments never target or originate from production."
 )
 
+DEFAULT_CORRELATION_URL = "http://127.0.0.1:8000"
+
+SAFE_NAMESPACE_REGEX = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
+ALLOWED_HOSTS = frozenset({
+    "127.0.0.1",
+    "localhost",
+    "0.0.0.0",
+    "perimeter-engine",
+    "perimeter-engine.perimeter.svc.cluster.local",
+})
+
 SCENARIO_MANIFEST_MAP: dict[str, str] = {
     "chaos-sc-01": "01-pod-kill-payment-gateway.yaml",
     "chaos-sc-02": "02-network-latency-bank-network.yaml",
     "chaos-sc-03": "03-stress-recommendation-engine.yaml",
 }
+
+
+def validate_namespace(namespace: str) -> str:
+    """Validate Kubernetes namespace conforms to RFC 1123 DNS label."""
+    cleaned = namespace.strip()
+    if not SAFE_NAMESPACE_REGEX.match(cleaned):
+        raise ValueError(
+            f"Invalid Kubernetes namespace: '{namespace}'. Must match RFC 1123 DNS label."
+        )
+    return cleaned
+
+
+def validate_manifest_path(manifest_path: Path) -> Path:
+    """Validate manifest path exists and resolves inside the evaluation chaos directory."""
+    resolved = manifest_path.resolve()
+    chaos_resolved = CHAOS_DIR.resolve()
+    if not resolved.is_file():
+        raise FileNotFoundError(f"Chaos manifest not found: {resolved}")
+    try:
+        resolved.relative_to(chaos_resolved)
+    except ValueError as err:
+        raise ValueError(
+            f"Manifest path must reside inside {chaos_resolved}: {resolved}"
+        ) from err
+    return resolved
+
+
+def validate_correlation_url(url: str) -> str:
+    """Validate correlation engine URL scheme and host against SSRF."""
+    parsed = urlsplit(url)
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError(f"Invalid URL scheme '{parsed.scheme}': only http and https allowed.")
+    if parsed.hostname not in ALLOWED_HOSTS:
+        raise ValueError(
+            f"Correlation URL host '{parsed.hostname}' is not in allowed hosts: {sorted(ALLOWED_HOSTS)}"
+        )
+    return url.rstrip("/")
 
 
 def load_ground_truth(path: Path | None = None) -> list[dict[str, Any]]:
@@ -87,14 +137,12 @@ def load_ground_truth(path: Path | None = None) -> list[dict[str, Any]]:
 def find_manifest_for_scenario(scenario_id: str, chaos_dir: Path | None = None) -> Path | None:
     """Find the Chaos Mesh YAML manifest corresponding to a scenario ID."""
     base_dir = (chaos_dir or CHAOS_DIR).resolve()
-    # Normalize scenario id prefix (e.g. 'chaos-sc-01-payment-gateway-both' -> 'chaos-sc-01')
     prefix = scenario_id[:11] if scenario_id.startswith("chaos-sc-") else scenario_id
     if prefix in SCENARIO_MANIFEST_MAP:
         candidate = base_dir / SCENARIO_MANIFEST_MAP[prefix]
         if candidate.is_file():
             return candidate
 
-    # Fallback: scan chaos directory for numeric or name matches
     for yaml_file in sorted(base_dir.glob("*.yaml")):
         if prefix in yaml_file.name or scenario_id in yaml_file.name:
             return yaml_file
@@ -120,7 +168,6 @@ def resolve_scenarios(
             resolved.append((sc, manifest))
         return resolved
 
-    # Handle short numeric aliases like '1', '01', 'sc-01', 'chaos-sc-01'
     if q.isdigit():
         q = f"chaos-sc-{int(q):02d}"
     elif q.startswith("sc-"):
@@ -156,32 +203,28 @@ def check_kubectl_available() -> bool:
 
 
 def apply_chaos_manifest(manifest_path: Path, namespace: str = "perimeter-test") -> None:
-    """Apply a Chaos Mesh manifest using kubectl."""
-    resolved_path = manifest_path.resolve()
-    if not resolved_path.is_file():
-        raise FileNotFoundError(f"Chaos manifest not found: {resolved_path}")
-
-    cmd = ["kubectl", "apply", "-f", str(resolved_path), "-n", namespace]
+    """Apply a Chaos Mesh manifest using kubectl, enforcing sanitized arguments."""
+    safe_ns = validate_namespace(namespace)
+    safe_path = validate_manifest_path(manifest_path)
+    cmd = ["kubectl", "apply", "-f", str(safe_path), "-n", safe_ns]
     res = subprocess.run(cmd, check=False, capture_output=True, text=True)
     if res.returncode != 0:
         raise RuntimeError(
-            f"Failed to apply chaos manifest {resolved_path.name}: {res.stderr.strip()}"
+            f"Failed to apply chaos manifest {safe_path.name}: {res.stderr.strip()}"
         )
 
 
 def delete_chaos_manifest(manifest_path: Path, namespace: str = "perimeter-test") -> None:
     """Delete a Chaos Mesh manifest using kubectl, ensuring clean teardown."""
-    resolved_path = manifest_path.resolve()
-    if not resolved_path.is_file():
-        return
-
+    safe_ns = validate_namespace(namespace)
+    safe_path = validate_manifest_path(manifest_path)
     cmd = [
         "kubectl",
         "delete",
         "-f",
-        str(resolved_path),
+        str(safe_path),
         "-n",
-        namespace,
+        safe_ns,
         "--ignore-not-found=true",
         "--wait=false",
     ]
@@ -192,10 +235,11 @@ def execute_pipeline_live(
     origin_service: str,
     direction: str = "both",
     max_depth: int = 3,
-    correlation_url: str = "http://127.0.0.1:8000",
+    correlation_url: str = DEFAULT_CORRELATION_URL,
 ) -> list[str]:
     """Execute the correlation pipeline against a live Correlation Engine instance."""
-    url = f"{correlation_url.rstrip('/')}/correlate"
+    safe_base = validate_correlation_url(correlation_url)
+    url = f"{safe_base}/correlate"
     payload = json.dumps(
         {"service": origin_service, "direction": direction, "max_depth": max_depth}
     ).encode("utf-8")
@@ -234,20 +278,51 @@ def execute_pipeline_dry_run(
     )
 
 
+def _prepare_live_manifest(manifest_path: Path | None, scenario_id: str) -> Path:
+    """Validate manifest and environment availability before live cluster injection."""
+    if not manifest_path:
+        raise FileNotFoundError(f"No Chaos Mesh YAML manifest found for scenario: {scenario_id}")
+
+    if not check_kubectl_available():
+        raise OSError(
+            "kubectl command not found. Install kubectl and configure Minikube cluster "
+            "or run with --dry-run for offline verification."
+        )
+    return manifest_path
+
+
+def _run_dry_run_injection(
+    manifest_path: Path | None,
+    scenario_id: str,
+    origin: str,
+    direction: str,
+    max_depth: int,
+) -> tuple[list[str], str]:
+    """Handle dry-run simulated fault application and in-process correlation."""
+    if manifest_path:
+        print(f"[Simulation] Verified Chaos Mesh manifest exists: {manifest_path.name}")
+    else:
+        print(f"[Simulation] Running scenario without manifest: {scenario_id}")
+    fault_time = datetime.now(UTC).isoformat()
+    services = execute_pipeline_dry_run(
+        origin_service=origin,
+        direction=direction,
+        max_depth=max_depth,
+    )
+    return services, fault_time
+
+
 def run_single_scenario(
     scenario: dict[str, Any],
     manifest_path: Path | None,
     dry_run: bool = False,
     wait_seconds: int = 5,
     namespace: str = "perimeter-test",
-    correlation_url: str = "http://127.0.0.1:8000",
+    correlation_url: str = DEFAULT_CORRELATION_URL,
     output_dir: Path | None = None,
     threshold: float = 0.8,
 ) -> dict[str, Any]:
-    """Execute a single chaos scenario, guaranteeing cleanup and result persistence.
-
-    Always deletes injected chaos resources upon completion or error.
-    """
+    """Execute a single chaos scenario, guaranteeing cleanup and result persistence."""
     sc_id = scenario.get("scenario_id", "unknown-scenario")
     origin = scenario.get("origin_service", "")
     direction = scenario.get("direction", "both")
@@ -265,22 +340,15 @@ def run_single_scenario(
 
     try:
         if not dry_run:
-            if not manifest_path:
-                raise FileNotFoundError(f"No Chaos Mesh YAML manifest found for scenario: {sc_id}")
-
-            if not check_kubectl_available():
-                raise OSError(
-                    "kubectl command not found. Install kubectl and configure Minikube cluster "
-                    "or run with --dry-run for offline verification."
-                )
-
-            print(f"Applying Chaos Mesh manifest: {manifest_path.name} in namespace '{namespace}'...")
-            apply_chaos_manifest(manifest_path, namespace=namespace)
+            safe_manifest = _prepare_live_manifest(manifest_path, sc_id)
+            print(f"Applying Chaos Mesh manifest: {safe_manifest.name} in namespace '{namespace}'...")
+            apply_chaos_manifest(safe_manifest, namespace=namespace)
             injected = True
             fault_applied_at = datetime.now(UTC).isoformat()
 
-            print(f"Waiting {wait_seconds}s for fault propagation...")
-            time.sleep(wait_seconds)
+            if wait_seconds > 0:
+                print(f"Waiting {wait_seconds}s for fault propagation...")
+                time.sleep(wait_seconds)
 
             print(f"Querying Correlation Engine at {correlation_url}...")
             found_services = execute_pipeline_live(
@@ -290,29 +358,21 @@ def run_single_scenario(
                 correlation_url=correlation_url,
             )
         else:
-            if manifest_path:
-                print(f"[Simulation] Verified Chaos Mesh manifest exists: {manifest_path.name}")
-            else:
-                print(f"[Simulation] Running scenario without manifest: {sc_id}")
-            fault_applied_at = datetime.now(UTC).isoformat()
-            found_services = execute_pipeline_dry_run(
-                origin_service=origin,
+            found_services, fault_applied_at = _run_dry_run_injection(
+                manifest_path=manifest_path,
+                scenario_id=sc_id,
+                origin=origin,
                 direction=direction,
                 max_depth=max_depth,
             )
     finally:
-        # Guaranteed cleanup: always runs even if exceptions or timeouts occur
         if injected and manifest_path:
             print(f"Cleaning up Chaos Mesh resource: {manifest_path.name}...")
-            try:
-                delete_chaos_manifest(manifest_path, namespace=namespace)
-                print("Cleanup complete.")
-            except (subprocess.SubprocessError, OSError) as cleanup_err:  # pragma: no cover
-                print(f"Warning: Cleanup encountered error: {cleanup_err}", file=sys.stderr)
+            delete_chaos_manifest(manifest_path, namespace=namespace)
+            print("Cleanup complete.")
         elif dry_run:
             print("[Simulation] Cleanup simulated successfully.")
 
-    # Score blast radius with benchmark scorer
     scored_result = score_blast_radius(
         expected_services=expected,
         found_services=found_services,
@@ -322,14 +382,12 @@ def run_single_scenario(
         threshold=threshold,
     )
 
-    # Augment result with environment notice and execution metadata
     scored_result["environment"] = "controlled_test_environment"
     scored_result["environment_disclaimer"] = CONTROLLED_ENV_DISCLAIMER
     scored_result["dry_run"] = dry_run
     scored_result["manifest"] = manifest_path.name if manifest_path else None
     scored_result["fault_applied_at"] = fault_applied_at
 
-    # Write JSON result file
     target_results_dir = (output_dir or DEFAULT_RESULTS_DIR).resolve()
     target_results_dir.mkdir(parents=True, exist_ok=True)
     out_file = target_results_dir / f"chaos_result_{sc_id}.json"
@@ -341,8 +399,6 @@ def run_single_scenario(
         f"Result: {status_tag} | Precision: {scored_result['precision']:.2f} | "
         f"Recall: {scored_result['recall']:.2f} | F1: {scored_result['f1_score']:.2f}"
     )
-    print(f"Saved result: {out_file.relative_to(REPO_ROOT) if out_file.is_relative_to(REPO_ROOT) else out_file}")
-
     return scored_result
 
 
@@ -351,7 +407,7 @@ def run_harness(
     dry_run: bool = False,
     wait_seconds: int = 5,
     namespace: str = "perimeter-test",
-    correlation_url: str = "http://127.0.0.1:8000",
+    correlation_url: str = DEFAULT_CORRELATION_URL,
     ground_truth_path: Path | None = None,
     output_dir: Path | None = None,
     threshold: float = 0.8,
@@ -397,7 +453,6 @@ def run_harness(
         "results": results,
     }
 
-    # Save aggregated run summary
     target_results_dir = (output_dir or DEFAULT_RESULTS_DIR).resolve()
     target_results_dir.mkdir(parents=True, exist_ok=True)
     summary_file = target_results_dir / f"chaos_run_{'dryrun' if dry_run else 'live'}_summary.json"
@@ -406,7 +461,6 @@ def run_harness(
 
     print("\n" + "=" * 76)
     print(f"HARNESS SUMMARY: {total_passed}/{len(results)} Scenarios Passed")
-    print(f"Aggregate Report: {summary_file.relative_to(REPO_ROOT) if summary_file.is_relative_to(REPO_ROOT) else summary_file}")
     print("=" * 76)
 
     return summary
@@ -443,8 +497,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--correlation-url",
         type=str,
-        default=os.getenv("CORRELATION_URL", "http://127.0.0.1:8000"),
-        help="Correlation Engine URL for live pipeline trigger (default: http://127.0.0.1:8000)",
+        default=os.getenv("CORRELATION_URL", DEFAULT_CORRELATION_URL),
+        help=f"Correlation Engine URL for live pipeline trigger (default: {DEFAULT_CORRELATION_URL})",
     )
     parser.add_argument(
         "--ground-truth",
