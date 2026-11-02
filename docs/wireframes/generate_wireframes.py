@@ -1,0 +1,845 @@
+#!/usr/bin/env python3
+"""
+Generate SVG wireframes for Perimeter Dashboard:
+1. Admin Incident View (admin-incident-view.svg)
+2. Team Incident View (team-incident-view.svg)
+3. Empty State View (empty-state-view.svg)
+"""
+
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+OUTPUT_DIR = Path(__file__).resolve().parent
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def build_admin_svg() -> str:
+    return """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1080" width="1440" height="1080">
+  <defs>
+    <style>
+      .bg { fill: #0b1120; }
+      .card { fill: #1e293b; stroke: #334155; stroke-width: 1; rx: 8; }
+      .card-highlight { fill: #1e293b; stroke: #38bdf8; stroke-width: 2; rx: 8; }
+      .card-subtle { fill: #0f172a; stroke: #334155; stroke-width: 1; rx: 6; }
+      .text-white { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; fill: #f8fafc; }
+      .text-muted { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; fill: #94a3b8; }
+      .text-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 18px; font-weight: 700; fill: #f8fafc; }
+      .text-subheading { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; font-weight: 600; fill: #e2e8f0; }
+      .badge-admin { fill: #0c4a6e; stroke: #0284c7; stroke-width: 1; rx: 4; }
+      .badge-admin-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; font-weight: 700; fill: #38bdf8; }
+      .badge-flagged { fill: #78350f; stroke: #d97706; stroke-width: 1; rx: 4; }
+      .badge-flagged-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; font-weight: 700; fill: #fbbf24; }
+      .badge-ok { fill: #14532d; stroke: #16a34a; stroke-width: 1; rx: 4; }
+      .badge-ok-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; font-weight: 700; fill: #4ade80; }
+      .badge-unsupported { fill: #7f1d1d; stroke: #dc2626; stroke-width: 1; rx: 4; }
+      .badge-unsupported-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; font-weight: 700; fill: #f87171; }
+      .badge-critical { fill: #450a0a; stroke: #991b1b; stroke-width: 1; rx: 4; }
+      .badge-critical-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; font-weight: 700; fill: #fca5a5; }
+      .btn-primary { fill: #0284c7; rx: 6; cursor: pointer; }
+      .btn-primary-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; font-weight: 600; fill: #ffffff; text-anchor: middle; }
+      .btn-success { fill: #059669; rx: 6; cursor: pointer; }
+      .btn-success-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; font-weight: 600; fill: #ffffff; text-anchor: middle; }
+      .btn-secondary { fill: #334155; stroke: #475569; stroke-width: 1; rx: 6; cursor: pointer; }
+      .btn-secondary-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; font-weight: 500; fill: #e2e8f0; text-anchor: middle; }
+      .node-box { fill: #0f172a; stroke: #38bdf8; stroke-width: 1.5; rx: 6; }
+      .node-root { fill: #450a0a; stroke: #ef4444; stroke-width: 2; rx: 6; }
+      .node-healthy { fill: #064e3b; stroke: #10b981; stroke-width: 1.5; rx: 6; }
+      .code-font { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; }
+    </style>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="1440" height="1080" class="bg"/>
+
+  <!-- ==================== TOP NAVIGATION BAR ==================== -->
+  <rect x="0" y="0" width="1440" height="64" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+  
+  <!-- Logo -->
+  <rect x="24" y="16" width="32" height="32" rx="8" fill="#0284c7"/>
+  <path d="M40 22 L48 38 L32 38 Z" fill="#ffffff" opacity="0.9"/>
+  <text x="68" y="38" class="text-title" font-size="19" letter-spacing="0.5">PERIMETER</text>
+  <text x="180" y="38" class="text-muted" font-size="13">| Incident Intelligence &amp; Autonomous Triage</text>
+
+  <!-- Nav Tabs -->
+  <rect x="420" y="16" width="100" height="32" rx="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
+  <text x="470" y="36" class="text-white" font-weight="600" text-anchor="middle" font-size="13">Incidents (3)</text>
+  <text x="560" y="36" class="text-muted" font-size="13">Team Directory</text>
+  <text x="680" y="36" class="text-muted" font-size="13">Leave Management</text>
+  <text x="820" y="36" class="text-muted" font-size="13">Chaos Benchmark</text>
+
+  <!-- Global Environment & Role Pill -->
+  <rect x="1060" y="18" width="190" height="28" class="badge-admin"/>
+  <circle cx="1074" cy="32" r="5" fill="#38bdf8"/>
+  <text x="1086" y="36" class="badge-admin-text">ROLE: ADMIN (ID: 10001)</text>
+
+  <rect x="1260" y="18" width="156" height="28" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="1272" y="36" class="text-white" font-size="12">Alex Admin</text>
+  <text x="1396" y="36" class="text-muted" font-size="11">▾</text>
+
+  <!-- Sub-header / Breadcrumbs & Scope Notice -->
+  <rect x="0" y="64" width="1440" height="38" fill="#1e293b" opacity="0.6"/>
+  <text x="24" y="88" class="text-muted" font-size="12">
+    Dashboard &gt; Incidents &gt; <tspan fill="#f8fafc" font-weight="600">INC-8042 (CheckoutServiceHighLatency)</tspan>
+  </text>
+  <text x="1080" y="88" class="text-muted" font-size="12">
+    Scope: <tspan fill="#38bdf8" font-weight="600">GLOBAL (All 6 Services / 2 Teams)</tspan> • Controlled Test Env (Minikube)
+  </text>
+
+  <!-- ==================== LEFT COLUMN: INCIDENT QUEUE (x=24, y=114, w=380) ==================== -->
+  <rect x="24" y="114" width="380" height="940" class="card" filter="url(#shadow)"/>
+  
+  <!-- Left Header & Search -->
+  <text x="40" y="146" class="text-subheading" font-size="15">Incoming Alerts &amp; Incidents</text>
+  <rect x="280" y="130" width="108" height="22" rx="11" fill="#334155"/>
+  <text x="334" y="145" class="text-white" font-size="11" text-anchor="middle">3 Active • 1 Flagged</text>
+
+  <!-- Search Filter Box -->
+  <rect x="40" y="164" width="348" height="32" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="52" y="184" class="text-muted" font-size="12">🔍 Search services, alertnames, IDs...</text>
+
+  <!-- Tabs: All, Open, Flagged, Resolved -->
+  <rect x="40" y="206" width="60" height="24" rx="4" fill="#0284c7"/>
+  <text x="70" y="222" class="text-white" font-size="11" font-weight="600" text-anchor="middle">All (4)</text>
+  <rect x="108" y="206" width="68" height="24" rx="4" fill="#334155"/>
+  <text x="142" y="222" class="text-muted" font-size="11" text-anchor="middle">Open (2)</text>
+  <rect x="184" y="206" width="80" height="24" rx="4" fill="#78350f" stroke="#d97706" stroke-width="1"/>
+  <text x="224" y="222" class="badge-flagged-text" font-size="11" text-anchor="middle">Flagged (1)</text>
+  <rect x="272" y="206" width="86" height="24" rx="4" fill="#334155"/>
+  <text x="315" y="222" class="text-muted" font-size="11" text-anchor="middle">Resolved (1)</text>
+
+  <!-- INCIDENT CARD 1: Selected (Active, Flagged) -->
+  <rect x="40" y="242" width="348" height="150" class="card-highlight"/>
+  <rect x="40" y="242" width="5" height="150" rx="2" fill="#38bdf8"/>
+  <text x="54" y="266" class="text-white" font-weight="700" font-size="14">CheckoutServiceHighLatency</text>
+  <text x="54" y="284" class="text-muted" font-size="12">ID: <tspan fill="#e2e8f0" class="code-font">inc-8042</tspan> • Target: <tspan fill="#38bdf8" font-weight="600">checkout-service</tspan></text>
+  
+  <rect x="54" y="296" width="70" height="20" class="badge-critical"/>
+  <text x="89" y="310" class="badge-critical-text" text-anchor="middle">CRITICAL</text>
+  
+  <rect x="130" y="296" width="134" height="20" class="badge-flagged"/>
+  <text x="197" y="310" class="badge-flagged-text" text-anchor="middle">⚠️ DRAFT FLAGGED (1)</text>
+
+  <rect x="270" y="296" width="108" height="20" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="324" y="310" class="text-muted" font-size="10" text-anchor="middle">Radius: 5 services</text>
+
+  <text x="54" y="340" class="text-muted" font-size="11">Owning Team: <tspan fill="#f8fafc">team-payments</tspan></text>
+  <text x="54" y="358" class="text-muted" font-size="11">Fired: 16:00:00Z (12 mins ago) • Correlated via BFS</text>
+  <text x="54" y="376" class="badge-flagged-text" font-size="11">Notice: 1 claim cited timestamp outside 15m window</text>
+
+  <!-- INCIDENT CARD 2: Active (Draft OK) -->
+  <rect x="40" y="404" width="348" height="136" class="card"/>
+  <text x="54" y="428" class="text-white" font-weight="600" font-size="13">BankNetworkSocketTimeout</text>
+  <text x="54" y="446" class="text-muted" font-size="12">ID: <tspan fill="#e2e8f0" class="code-font">inc-7911</tspan> • Target: <tspan fill="#94a3b8">bank-network</tspan></text>
+  
+  <rect x="54" y="456" width="54" height="20" rx="4" fill="#78350f"/>
+  <text x="81" y="470" class="badge-flagged-text" text-anchor="middle">HIGH</text>
+  
+  <rect x="114" y="456" width="100" height="20" class="badge-ok"/>
+  <text x="164" y="470" class="badge-ok-text" text-anchor="middle">✓ DRAFT OK</text>
+
+  <text x="54" y="500" class="text-muted" font-size="11">Owning Team: <tspan fill="#f8fafc">team-payments</tspan> • Radius: 3 services</text>
+  <text x="54" y="518" class="text-muted" font-size="11">Fired: 15:15:00Z (57 mins ago) • All claims validated</text>
+
+  <!-- INCIDENT CARD 3: Resolved -->
+  <rect x="40" y="552" width="348" height="120" class="card" opacity="0.75"/>
+  <text x="54" y="576" class="text-muted" font-weight="600" font-size="13">FrontendProxy5xxSpike</text>
+  <text x="54" y="594" class="text-muted" font-size="12">ID: <tspan class="code-font">inc-7850</tspan> • Target: frontend-proxy</text>
+  
+  <rect x="54" y="604" width="70" height="20" rx="4" fill="#334155"/>
+  <text x="89" y="618" class="text-muted" font-size="10" text-anchor="middle">RESOLVED</text>
+  <text x="134" y="618" class="text-muted" font-size="11">Finalized by Admin (10001)</text>
+
+  <text x="54" y="644" class="text-muted" font-size="11">Owning Team: team-core-platform • Root: config-drift</text>
+
+  <!-- INCIDENT CARD 4: Correlation Failed State -->
+  <rect x="40" y="684" width="348" height="110" class="card" stroke="#b45309" stroke-dasharray="3 3"/>
+  <text x="54" y="708" class="text-white" font-weight="600" font-size="13">RecommendationLatencySpike</text>
+  <text x="54" y="726" class="text-muted" font-size="12">ID: <tspan class="code-font">inc-7704</tspan> • Target: recommendation-engine</text>
+  <rect x="54" y="736" width="170" height="20" rx="4" fill="#451a03" stroke="#b45309" stroke-width="1"/>
+  <text x="139" y="750" class="badge-flagged-text" text-anchor="middle">⚙️ CORRELATION_FAILED</text>
+  <text x="54" y="774" class="text-muted" font-size="11">Stored safely without engine blast radius</text>
+
+  <!-- EMPTY STATE INSET (Wireframe Demonstration) -->
+  <rect x="40" y="810" width="348" height="130" rx="6" fill="#0f172a" stroke="#334155" stroke-dasharray="4 4"/>
+  <text x="140" y="842" class="text-white" font-size="12" font-weight="600">Empty State Wireframe Callout</text>
+  <text x="70" y="866" class="text-muted" font-size="11">When all alerts resolve or filter returns 0 results:</text>
+  <rect x="90" y="878" width="248" height="42" rx="4" fill="#1e293b"/>
+  <text x="214" y="896" class="badge-ok-text" text-anchor="middle">✓ Zero Active Incidents System-Wide</text>
+  <text x="214" y="910" class="text-muted" font-size="10" text-anchor="middle">All 6 microservices reporting nominal health</text>
+  <text x="54" y="932" class="text-muted" font-size="10">(See separate empty-state-view.svg for full canvas)</text>
+
+  <!-- Admin Footer Quick Links -->
+  <rect x="40" y="958" width="168" height="32" class="btn-secondary"/>
+  <text x="124" y="978" class="btn-secondary-text">👥 Team Directory (4)</text>
+  <rect x="220" y="958" width="168" height="32" class="btn-secondary"/>
+  <text x="304" y="978" class="btn-secondary-text">📅 Manage Leave</text>
+
+
+  <!-- ==================== RIGHT COLUMN: INCIDENT DETAIL PANEL (x=420, y=114, w=996) ==================== -->
+  
+  <!-- PANEL HEADER CARD -->
+  <rect x="420" y="114" width="996" height="96" class="card" filter="url(#shadow)"/>
+  <text x="444" y="144" class="text-title">INC-8042: High latency detected on checkout-service</text>
+  
+  <rect x="444" y="156" width="60" height="22" rx="4" fill="#7f1d1d"/>
+  <text x="474" y="171" class="badge-unsupported-text" text-anchor="middle">OPEN</text>
+
+  <rect x="512" y="156" width="140" height="22" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="582" y="171" class="text-white" font-size="11" text-anchor="middle">Alert: <tspan fill="#38bdf8">checkout-service</tspan></text>
+
+  <rect x="660" y="156" width="150" height="22" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="735" y="171" class="text-white" font-size="11" text-anchor="middle">Owning: <tspan fill="#a855f7">team-payments</tspan></text>
+
+  <text x="822" y="172" class="text-muted" font-size="12">Fired: 2026-10-12 16:00:00 UTC • Duration: 12m 45s</text>
+
+  <!-- Admin Action Buttons (Top Right) -->
+  <rect x="1000" y="146" width="130" height="36" class="btn-secondary"/>
+  <text x="1065" y="169" class="btn-secondary-text">✏️ Edit Hypothesis</text>
+
+  <rect x="1142" y="146" width="120" height="36" class="btn-secondary"/>
+  <text x="1202" y="169" class="btn-secondary-text">👤 Set On-Leave</text>
+
+  <rect x="1274" y="146" width="126" height="36" class="btn-success"/>
+  <text x="1337" y="169" class="btn-success-text">✅ Mark as Final</text>
+
+
+  <!-- VALIDATION WARNING BANNER -->
+  <rect x="420" y="222" width="996" height="66" rx="8" fill="#451a03" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="444" y="248" class="badge-flagged-text" font-size="14">⚠️ DRAFT FLAGGED BY FACT-CHECKING VALIDATOR (Human Review Required)</text>
+  <text x="444" y="270" class="text-white" font-size="12">
+    Claim <tspan fill="#fca5a5" font-weight="700" class="code-font">[c3]</tspan> marked <tspan fill="#ef4444" font-weight="700">UNSUPPORTED</tspan>: Cites timestamp outside 15m incident window (fired_at ± 15m). 
+    Timeline row 1 carries warning. Structure OK (Groq <tspan class="code-font">gpt-oss-120b</tspan> @ temp 0).
+  </text>
+  <rect x="1260" y="238" width="140" height="32" rx="6" fill="#78350f" stroke="#d97706" stroke-width="1"/>
+  <text x="1330" y="258" class="badge-flagged-text" font-size="12" text-anchor="middle">Review 1 Flag ▾</text>
+
+
+  <!-- BLAST RADIUS & SERVICE DEPENDENCY GRAPH (Bidirectional BFS) -->
+  <rect x="420" y="300" width="996" height="136" class="card" filter="url(#shadow)"/>
+  <text x="444" y="324" class="text-subheading">Blast Radius &amp; Service Dependency Graph (Bidirectional Traversal: 5 Services)</text>
+  <text x="960" y="324" class="text-muted" font-size="11">BFS: Callees (possible causes) + Callers (impacted clients)</text>
+
+  <!-- Interactive Graph Nodes -->
+  <!-- Node 1: frontend-proxy (caller) -->
+  <rect x="444" y="342" width="154" height="64" class="node-box"/>
+  <text x="456" y="362" class="text-white" font-weight="600" font-size="12">frontend-proxy</text>
+  <text x="456" y="378" class="text-muted" font-size="10">team-core-platform</text>
+  <text x="456" y="394" class="text-muted" font-size="10">Status: <tspan fill="#f87171">502 Errors</tspan> (Caller)</text>
+
+  <!-- Edge 1 -->
+  <path d="M598 374 L632 374" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="615" y="366" class="text-muted" font-size="10" text-anchor="middle">edge-0</text>
+
+  <!-- Node 2: checkout-service (Alert Origin) -->
+  <rect x="636" y="342" width="168" height="64" class="node-box" stroke="#f59e0b" stroke-width="2"/>
+  <text x="648" y="362" class="text-white" font-weight="700" font-size="12">checkout-service ⚠️</text>
+  <text x="648" y="378" class="text-muted" font-size="10">team-payments (Alert Origin)</text>
+  <text x="648" y="394" class="text-muted" font-size="10">Latency: <tspan fill="#fbbf24">4350ms</tspan> • 500 Spike</text>
+
+  <!-- Edge 2 -->
+  <path d="M804 374 L838 374" stroke="#38bdf8" stroke-width="2"/>
+  <text x="821" y="366" class="text-muted" font-size="10" text-anchor="middle">edge-1</text>
+
+  <!-- Node 3: payment-gateway (Callee intermediary) -->
+  <rect x="842" y="342" width="164" height="64" class="node-box"/>
+  <text x="854" y="362" class="text-white" font-weight="600" font-size="12">payment-gateway</text>
+  <text x="854" y="378" class="text-muted" font-size="10">team-payments (Callee)</text>
+  <text x="854" y="394" class="text-muted" font-size="10">Latency: <tspan fill="#fbbf24">4200ms</tspan> • 500 Error</text>
+
+  <!-- Edge 3 -->
+  <path d="M1006 374 L1040 374" stroke="#ef4444" stroke-width="2"/>
+  <text x="1023" y="366" class="text-muted" font-size="10" text-anchor="middle">edge-2</text>
+
+  <!-- Node 4: bank-network (ROOT CAUSE) -->
+  <rect x="1044" y="340" width="186" height="68" class="node-root"/>
+  <text x="1056" y="362" class="text-white" font-weight="700" font-size="12">⚡ bank-network</text>
+  <text x="1056" y="378" class="badge-critical-text" font-size="11">ROOT CAUSE CANDIDATE</text>
+  <text x="1056" y="396" class="text-muted" font-size="10">Socket Timeout: <tspan fill="#f87171">504 (4000ms)</tspan></text>
+
+  <!-- Branch Node 5: inventory-service (healthy callee) -->
+  <path d="M720 406 L720 422 L1250 422 L1250 390 L1260 390" stroke="#10b981" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <rect x="1256" y="344" width="144" height="60" class="node-healthy"/>
+  <text x="1268" y="364" class="text-white" font-size="11" font-weight="600">inventory-service</text>
+  <text x="1268" y="378" class="text-muted" font-size="10">team-core-platform</text>
+  <text x="1268" y="392" class="badge-ok-text" font-size="10">200 OK • 48ms (Nominal)</text>
+
+
+  <!-- DRAFTED HYPOTHESIS SECTION (Admin Editable) -->
+  <rect x="420" y="448" width="996" height="178" class="card" filter="url(#shadow)"/>
+  
+  <text x="444" y="474" class="text-subheading">Root-Cause Hypothesis (Admin Edit Mode Enabled)</text>
+  
+  <!-- Model source tag -->
+  <rect x="800" y="460" width="220" height="20" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="910" y="474" class="text-muted" font-size="10" text-anchor="middle">Model: openai/gpt-oss-120b @ Temp 0</text>
+
+  <!-- Confidence Badge -->
+  <rect x="1030" y="460" width="120" height="20" rx="4" fill="#78350f"/>
+  <text x="1090" y="474" class="badge-flagged-text" text-anchor="middle">Confidence: MEDIUM</text>
+
+  <rect x="1160" y="460" width="110" height="20" rx="4" fill="#0f172a" stroke="#38bdf8" stroke-width="1"/>
+  <text x="1215" y="474" class="badge-admin-text" text-anchor="middle">✏️ Admin Editable</text>
+
+  <!-- Editable Summary Text Area -->
+  <rect x="444" y="490" width="948" height="64" rx="6" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"/>
+  <text x="458" y="512" class="text-white" font-size="13">
+    bank-network timed out after 4000ms (504 Gateway Timeout), which stalled payment-gateway connection pool and
+  </text>
+  <text x="458" y="532" class="text-white" font-size="13">
+    cascaded to checkout-service returning 500 errors to frontend-proxy. Inventory service remained healthy on branch edge.
+  </text>
+  <!-- Blinking Cursor indication -->
+  <line x1="840" y1="520" x2="840" y2="536" stroke="#38bdf8" stroke-width="2"/>
+
+  <!-- Cascade Path & Root Cause Metadata tags -->
+  <text x="444" y="574" class="text-muted" font-size="12">Root Cause Service:</text>
+  <rect x="560" y="560" width="114" height="22" rx="4" fill="#450a0a" stroke="#ef4444" stroke-width="1"/>
+  <text x="617" y="575" class="badge-unsupported-text" text-anchor="middle">bank-network</text>
+  <text x="686" y="574" class="badge-ok-text" font-size="11">✓ In blast radius</text>
+
+  <text x="800" y="574" class="text-muted" font-size="12">Cascade Path:</text>
+  <rect x="890" y="560" width="310" height="22" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="1045" y="575" class="code-font" font-size="11" fill="#e2e8f0" text-anchor="middle">checkout-service → payment-gateway → bank-network</text>
+  <text x="1210" y="574" class="badge-ok-text" font-size="11">✓ Valid edges</text>
+
+  <!-- Admin Controls for Draft -->
+  <rect x="1270" y="556" width="122" height="28" class="btn-secondary"/>
+  <text x="1331" y="574" class="btn-secondary-text">↺ Reset to LLM</text>
+
+
+  <!-- FACT-CHECKING CLAIMS TABLE -->
+  <rect x="420" y="638" width="996" height="258" class="card" filter="url(#shadow)"/>
+  <text x="444" y="664" class="text-subheading">Claims &amp; Evidence Fact-Checking (LLM Ground-Truth Validation)</text>
+  <text x="1020" y="664" class="text-muted" font-size="11">Strict validation against context object only</text>
+
+  <!-- Table Header Row -->
+  <rect x="444" y="678" width="948" height="28" rx="4" fill="#0f172a"/>
+  <text x="456" y="696" class="text-muted" font-size="11" font-weight="700">ID</text>
+  <text x="496" y="696" class="text-muted" font-size="11" font-weight="700">TYPE</text>
+  <text x="590" y="696" class="text-muted" font-size="11" font-weight="700">CLAIM STATEMENT</text>
+  <text x="940" y="696" class="text-muted" font-size="11" font-weight="700">CITED EVIDENCE</text>
+  <text x="1100" y="696" class="text-muted" font-size="11" font-weight="700">VALIDATOR STATUS</text>
+  <text x="1320" y="696" class="text-muted" font-size="11" font-weight="700">ACTION</text>
+
+  <!-- Row 1: Supported Causal Edge -->
+  <rect x="444" y="710" width="948" height="34" rx="2" fill="#1e293b"/>
+  <text x="456" y="732" class="code-font" fill="#e2e8f0">c1</text>
+  <text x="496" y="732" class="text-muted" font-size="11">causal_edge</text>
+  <text x="590" y="732" class="text-white" font-size="12">payment-gateway calls bank-network</text>
+  <text x="940" y="732" class="code-font" fill="#38bdf8">edge-2</text>
+  <rect x="1100" y="716" width="110" height="22" class="badge-ok"/>
+  <text x="1155" y="731" class="badge-ok-text" text-anchor="middle">✓ SUPPORTED</text>
+  <text x="1320" y="732" class="text-muted" font-size="11">—</text>
+
+  <!-- Row 2: Supported Status Code -->
+  <rect x="444" y="748" width="948" height="34" rx="2" fill="#0f172a" opacity="0.8"/>
+  <text x="456" y="770" class="code-font" fill="#e2e8f0">c2</text>
+  <text x="496" y="770" class="text-muted" font-size="11">status_code</text>
+  <text x="590" y="770" class="text-white" font-size="12">bank-network returned 504 Gateway Timeout</text>
+  <text x="940" y="770" class="code-font" fill="#38bdf8">span-bn-04 (504)</text>
+  <rect x="1100" y="754" width="110" height="22" class="badge-ok"/>
+  <text x="1155" y="769" class="badge-ok-text" text-anchor="middle">✓ SUPPORTED</text>
+  <text x="1320" y="770" class="text-muted" font-size="11">—</text>
+
+  <!-- Row 3: UNSUPPORTED Timestamp (FLAGGED CLAIM) -->
+  <rect x="444" y="786" width="948" height="42" rx="4" fill="#450a0a" stroke="#dc2626" stroke-width="1.2"/>
+  <text x="456" y="812" class="code-font" fill="#fca5a5" font-weight="700">c3</text>
+  <text x="496" y="812" class="badge-unsupported-text" font-size="11">timestamp</text>
+  <text x="590" y="804" class="text-white" font-size="12">Latency degradation initiated at 15:42:00 UTC</text>
+  <text x="590" y="820" class="badge-unsupported-text" font-size="10">Reason: Cited timestamp outside 15m window (15:45 - 16:15 UTC)</text>
+  <text x="940" y="812" class="code-font" fill="#fca5a5">log-bn-01</text>
+  <rect x="1100" y="794" width="130" height="26" class="badge-unsupported"/>
+  <text x="1165" y="811" class="badge-unsupported-text" text-anchor="middle">✗ UNSUPPORTED</text>
+  <rect x="1310" y="794" width="72" height="26" class="btn-secondary"/>
+  <text x="1346" y="811" class="btn-secondary-text">Edit Claim</text>
+
+  <!-- Row 4: Supported Latency -->
+  <rect x="444" y="832" width="948" height="34" rx="2" fill="#1e293b"/>
+  <text x="456" y="854" class="code-font" fill="#e2e8f0">c4</text>
+  <text x="496" y="854" class="text-muted" font-size="11">latency</text>
+  <text x="590" y="854" class="text-white" font-size="12">payment-gateway took 4200ms (within 5% span duration)</text>
+  <text x="940" y="854" class="code-font" fill="#38bdf8">span-pg-03 (4200ms)</text>
+  <rect x="1100" y="838" width="110" height="22" class="badge-ok"/>
+  <text x="1155" y="853" class="badge-ok-text" text-anchor="middle">✓ SUPPORTED</text>
+  <text x="1320" y="854" class="text-muted" font-size="11">—</text>
+
+
+  <!-- BOTTOM SECTION: ON-CALL ROUTER & POSTMORTEM -->
+  <!-- Left Box: On-Call Team Directory (Admin View) -->
+  <rect x="420" y="908" width="488" height="146" class="card" filter="url(#shadow)"/>
+  <text x="444" y="934" class="text-subheading">On-Call Responders (team-payments)</text>
+  <text x="760" y="934" class="text-muted" font-size="11">BFF Router Match</text>
+
+  <!-- Responder 1 (Primary On-Call) -->
+  <rect x="444" y="948" width="440" height="40" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <circle cx="464" cy="968" r="10" fill="#0284c7"/>
+  <text x="464" y="972" class="text-white" font-size="11" font-weight="700" text-anchor="middle">DD</text>
+  <text x="484" y="964" class="text-white" font-size="12" font-weight="600">Dev Dave (100101)</text>
+  <text x="484" y="978" class="text-muted" font-size="10">Mid • Skills: python, fastapi • Chat: chat_101</text>
+  <rect x="710" y="956" width="76" height="22" class="badge-ok"/>
+  <text x="748" y="971" class="badge-ok-text" text-anchor="middle">ON-CALL</text>
+  <rect x="796" y="956" width="80" height="22" rx="4" fill="#78350f" stroke="#d97706" stroke-width="1"/>
+  <text x="836" y="971" class="badge-flagged-text" font-size="10" text-anchor="middle">Set Leave</text>
+
+  <!-- Responder 2 (Secondary Senior) -->
+  <rect x="444" y="994" width="440" height="40" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <circle cx="464" cy="1014" r="10" fill="#475569"/>
+  <text x="464" y="1018" class="text-white" font-size="11" font-weight="700" text-anchor="middle">SS</text>
+  <text x="484" y="1010" class="text-white" font-size="12" font-weight="600">Sara Senior (100102)</text>
+  <text x="484" y="1024" class="text-muted" font-size="10">Lead • Skills: distributed-systems, payments</text>
+  <rect x="710" y="1002" width="76" height="22" rx="4" fill="#334155"/>
+  <text x="748" y="1017" class="text-muted" font-size="10" text-anchor="middle">AVAILABLE</text>
+  <rect x="796" y="1002" width="80" height="22" rx="4" fill="#78350f" stroke="#d97706" stroke-width="1"/>
+  <text x="836" y="1017" class="badge-flagged-text" font-size="10" text-anchor="middle">Set Leave</text>
+
+
+  <!-- Right Box: Postmortem Preview & Finalize Action -->
+  <rect x="928" y="908" width="488" height="146" class="card" filter="url(#shadow)"/>
+  <text x="952" y="934" class="text-subheading">Postmortem Summary Preview</text>
+  <text x="1270" y="934" class="badge-ok-text" font-size="11">Auto-Drafted</text>
+
+  <rect x="952" y="948" width="440" height="52" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="964" y="968" class="text-muted" font-size="11">Impact: Checkout HTTP 500 spike for 12m. Contributing factor: No socket</text>
+  <text x="964" y="986" class="text-muted" font-size="11">timeout fallback on payment-gateway. Next: Add circuit breaker.</text>
+
+  <!-- Finalize Button Callout -->
+  <rect x="952" y="1008" width="280" height="34" class="btn-success"/>
+  <text x="1092" y="1030" class="btn-success-text" font-size="13">✅ Mark as Final &amp; Resolve Incident</text>
+  <text x="1244" y="1030" class="text-muted" font-size="10">(Writes final status to Postgres)</text>
+
+</svg>"""
+
+
+def build_team_svg() -> str:
+    return """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1080" width="1440" height="1080">
+  <defs>
+    <style>
+      .bg { fill: #0b1120; }
+      .card { fill: #1e293b; stroke: #334155; stroke-width: 1; rx: 8; }
+      .card-highlight { fill: #1e293b; stroke: #818cf8; stroke-width: 2; rx: 8; }
+      .card-subtle { fill: #0f172a; stroke: #334155; stroke-width: 1; rx: 6; }
+      .text-white { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; fill: #f8fafc; }
+      .text-muted { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; fill: #94a3b8; }
+      .text-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 18px; font-weight: 700; fill: #f8fafc; }
+      .text-subheading { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; font-weight: 600; fill: #e2e8f0; }
+      .badge-team { fill: #312e81; stroke: #6366f1; stroke-width: 1; rx: 4; }
+      .badge-team-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; font-weight: 700; fill: #a5b4fc; }
+      .badge-flagged { fill: #78350f; stroke: #d97706; stroke-width: 1; rx: 4; }
+      .badge-flagged-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; font-weight: 700; fill: #fbbf24; }
+      .badge-ok { fill: #14532d; stroke: #16a34a; stroke-width: 1; rx: 4; }
+      .badge-ok-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; font-weight: 700; fill: #4ade80; }
+      .badge-unsupported { fill: #7f1d1d; stroke: #dc2626; stroke-width: 1; rx: 4; }
+      .badge-unsupported-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; font-weight: 700; fill: #f87171; }
+      .badge-critical { fill: #450a0a; stroke: #991b1b; stroke-width: 1; rx: 4; }
+      .badge-critical-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; font-weight: 700; fill: #fca5a5; }
+      .btn-secondary { fill: #334155; stroke: #475569; stroke-width: 1; rx: 6; cursor: pointer; }
+      .btn-secondary-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; font-weight: 500; fill: #e2e8f0; text-anchor: middle; }
+      .btn-disabled { fill: #1e293b; stroke: #334155; stroke-width: 1; rx: 6; opacity: 0.6; }
+      .btn-disabled-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; font-weight: 500; fill: #64748b; text-anchor: middle; }
+      .node-owned { fill: #1e1b4b; stroke: #818cf8; stroke-width: 2; rx: 6; }
+      .node-external { fill: #0f172a; stroke: #475569; stroke-width: 1.5; stroke-dasharray: 4 4; rx: 6; }
+      .code-font { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; }
+    </style>
+    <filter id="shadow-team" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="1440" height="1080" class="bg"/>
+
+  <!-- ==================== TOP NAVIGATION BAR ==================== -->
+  <rect x="0" y="0" width="1440" height="64" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+  
+  <!-- Logo -->
+  <rect x="24" y="16" width="32" height="32" rx="8" fill="#6366f1"/>
+  <path d="M40 22 L48 38 L32 38 Z" fill="#ffffff" opacity="0.9"/>
+  <text x="68" y="38" class="text-title" font-size="19" letter-spacing="0.5">PERIMETER</text>
+  <text x="180" y="38" class="text-muted" font-size="13">| Team Observability Portal</text>
+
+  <!-- Nav Tabs -->
+  <rect x="420" y="16" width="130" height="32" rx="6" fill="#1e293b" stroke="#818cf8" stroke-width="1"/>
+  <text x="485" y="36" class="text-white" font-weight="600" text-anchor="middle" font-size="13">My Incidents (2)</text>
+  <text x="600" y="36" class="text-muted" font-size="13">Team Services (3)</text>
+  <text x="730" y="36" class="text-muted" font-size="13">On-Call Roster</text>
+
+  <!-- Scoped Role Pill: Team Member -->
+  <rect x="1000" y="18" width="240" height="28" class="badge-team"/>
+  <circle cx="1014" cy="32" r="5" fill="#a5b4fc"/>
+  <text x="1026" y="36" class="badge-team-text">TEAM MEMBER (ID: 100101)</text>
+
+  <rect x="1250" y="18" width="166" height="28" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="1262" y="36" class="text-white" font-size="12">Dev Dave (Payments)</text>
+  <text x="1400" y="36" class="text-muted" font-size="11">▾</text>
+
+  <!-- Sub-header / RBAC Scope Enforcement Banner -->
+  <rect x="0" y="64" width="1440" height="38" fill="#1e1b4b" opacity="0.8"/>
+  <text x="24" y="88" class="badge-team-text" font-size="12">
+    🔒 RBAC SCOPE ENFORCED: Showing data strictly for team-payments (checkout-service, payment-gateway, bank-network)
+  </text>
+  <text x="1110" y="88" class="text-muted" font-size="12">
+    Mode: <tspan fill="#e2e8f0" font-weight="600">Read-Only Investigation</tspan>
+  </text>
+
+
+  <!-- ==================== LEFT COLUMN: SCOPED INCIDENT QUEUE (x=24, y=114, w=380) ==================== -->
+  <rect x="24" y="114" width="380" height="940" class="card" filter="url(#shadow-team)"/>
+  
+  <text x="40" y="146" class="text-subheading" font-size="15">team-payments Incidents (2)</text>
+  <text x="40" y="166" class="text-muted" font-size="11">Filtered by owning_team_id = 'team-payments'</text>
+
+  <!-- Scope Notice Box -->
+  <rect x="40" y="180" width="348" height="48" rx="6" fill="#0f172a" stroke="#312e81" stroke-width="1"/>
+  <text x="52" y="200" class="badge-team-text" font-size="11">ℹ️ Filtered by BFF Backend:</text>
+  <text x="52" y="216" class="text-muted" font-size="11">Incidents on core-platform services are hidden by policy.</text>
+
+  <!-- INCIDENT CARD 1: Selected (Flagged) -->
+  <rect x="40" y="240" width="348" height="150" class="card-highlight"/>
+  <rect x="40" y="240" width="5" height="150" rx="2" fill="#818cf8"/>
+  <text x="54" y="264" class="text-white" font-weight="700" font-size="14">CheckoutServiceHighLatency</text>
+  <text x="54" y="282" class="text-muted" font-size="12">ID: <tspan fill="#e2e8f0" class="code-font">inc-8042</tspan> • Target: <tspan fill="#818cf8" font-weight="600">checkout-service</tspan></text>
+  
+  <rect x="54" y="294" width="70" height="20" class="badge-critical"/>
+  <text x="89" y="308" class="badge-critical-text" text-anchor="middle">CRITICAL</text>
+  
+  <rect x="130" y="294" width="134" height="20" class="badge-flagged"/>
+  <text x="197" y="308" class="badge-flagged-text" text-anchor="middle">⚠️ DRAFT FLAGGED (1)</text>
+
+  <rect x="270" y="294" width="108" height="20" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="324" y="308" class="text-muted" font-size="10" text-anchor="middle">Radius: 5 services</text>
+
+  <text x="54" y="338" class="badge-team-text" font-size="11">Owned Service: checkout-service</text>
+  <text x="54" y="356" class="text-muted" font-size="11">Fired: 16:00:00Z (12m ago) • You are Primary On-Call</text>
+  <text x="54" y="374" class="badge-flagged-text" font-size="11">Awaiting Admin finalization review</text>
+
+  <!-- INCIDENT CARD 2: Active (Draft OK) -->
+  <rect x="40" y="402" width="348" height="136" class="card"/>
+  <text x="54" y="426" class="text-white" font-weight="600" font-size="13">BankNetworkSocketTimeout</text>
+  <text x="54" y="444" class="text-muted" font-size="12">ID: <tspan fill="#e2e8f0" class="code-font">inc-7911</tspan> • Target: <tspan fill="#818cf8">bank-network</tspan></text>
+  
+  <rect x="54" y="454" width="54" height="20" rx="4" fill="#78350f"/>
+  <text x="81" y="468" class="badge-flagged-text" text-anchor="middle">HIGH</text>
+  
+  <rect x="114" y="454" width="100" height="20" class="badge-ok"/>
+  <text x="164" y="468" class="badge-ok-text" text-anchor="middle">✓ DRAFT OK</text>
+
+  <text x="54" y="498" class="badge-team-text" font-size="11">Owned Service: bank-network</text>
+  <text x="54" y="516" class="text-muted" font-size="11">Fired: 15:15:00Z • Automated draft passed validation</text>
+
+  <!-- EMPTY STATE INSET (TEAM VIEW) -->
+  <rect x="40" y="556" width="348" height="200" rx="6" fill="#0f172a" stroke="#334155" stroke-dasharray="4 4"/>
+  <circle cx="214" cy="610" r="24" fill="#1e1b4b"/>
+  <text x="214" y="616" font-size="20" text-anchor="middle">🛡️</text>
+  <text x="214" y="650" class="text-white" font-size="13" font-weight="600" text-anchor="middle">Team Scope Empty State</text>
+  <text x="214" y="670" class="badge-ok-text" font-size="11" text-anchor="middle">No active incidents for team-payments</text>
+  <text x="214" y="690" class="text-muted" font-size="10" text-anchor="middle">All 3 owned services are operating normally</text>
+  <rect x="94" y="708" width="240" height="28" class="btn-secondary"/>
+  <text x="214" y="726" class="btn-secondary-text" font-size="11">View 12 Resolved Incidents</text>
+
+  <!-- Team Member Information Box -->
+  <rect x="40" y="776" width="348" height="150" class="card-subtle"/>
+  <text x="54" y="802" class="text-subheading" font-size="13">My On-Call Status</text>
+  <text x="54" y="826" class="text-muted" font-size="11">User: <tspan fill="#f8fafc">Dev Dave (100101)</tspan> • Seniority: mid</text>
+  <text x="54" y="846" class="text-muted" font-size="11">Status: <tspan fill="#4ade80" font-weight="600">Active On-Call (chat_101)</tspan></text>
+  <text x="54" y="866" class="text-muted" font-size="11">Secondary: Sara Senior (Lead)</text>
+  <text x="54" y="896" class="text-muted" font-size="10">Leave status changes must be requested through Admin (10001).</text>
+
+
+  <!-- ==================== RIGHT COLUMN: SCOPED INCIDENT DETAIL PANEL (x=420, y=114, w=996) ==================== -->
+  
+  <!-- PANEL HEADER CARD -->
+  <rect x="420" y="114" width="996" height="96" class="card" filter="url(#shadow-team)"/>
+  <text x="444" y="144" class="text-title">INC-8042: High latency detected on checkout-service</text>
+  
+  <rect x="444" y="156" width="60" height="22" rx="4" fill="#7f1d1d"/>
+  <text x="474" y="171" class="badge-unsupported-text" text-anchor="middle">OPEN</text>
+
+  <rect x="512" y="156" width="160" height="22" rx="4" fill="#1e1b4b" stroke="#818cf8" stroke-width="1"/>
+  <text x="592" y="171" class="badge-team-text" text-anchor="middle">Owned: checkout-service</text>
+
+  <text x="686" y="172" class="text-muted" font-size="12">Fired: 16:00:00 UTC • Impact: Checkout payment flows</text>
+
+  <!-- Team Member Read-Only Actions (No Edit/Finalize Buttons!) -->
+  <rect x="1000" y="146" width="120" height="36" class="btn-secondary"/>
+  <text x="1060" y="169" class="btn-secondary-text">📋 Copy Brief</text>
+
+  <rect x="1130" y="146" width="130" height="36" class="btn-secondary"/>
+  <text x="1195" y="169" class="btn-secondary-text">💬 Telegram Ping</text>
+
+  <!-- Disabled Finalize button showing admin-only restriction -->
+  <rect x="1270" y="146" width="130" height="36" class="btn-disabled"/>
+  <text x="1335" y="169" class="btn-disabled-text">🔒 Admin Sign-Off</text>
+
+
+  <!-- VALIDATION ALERT BANNER (TEAM VIEW) -->
+  <rect x="420" y="222" width="996" height="66" rx="8" fill="#451a03" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="444" y="248" class="badge-flagged-text" font-size="14">⚠️ DRAFT FLAGGED: 1 Claim Pending Admin Review</text>
+  <text x="444" y="270" class="text-white" font-size="12">
+    Claim <tspan fill="#fca5a5" font-weight="700" class="code-font">[c3]</tspan> was flagged because timestamp is outside the alert window. 
+    Read-only view: SRE Admin (10001) will review and finalize this hypothesis.
+  </text>
+
+
+  <!-- BLAST RADIUS WITH OWNERSHIP HIGHLIGHTING -->
+  <rect x="420" y="300" width="996" height="136" class="card" filter="url(#shadow-team)"/>
+  <text x="444" y="324" class="text-subheading">Blast Radius: Service Ownership Delineation</text>
+  <text x="940" y="324" class="badge-team-text" font-size="11">Solid = Team Owned • Dashed = External Dependency</text>
+
+  <!-- External Node: frontend-proxy (core-platform) -->
+  <rect x="444" y="342" width="154" height="64" class="node-external"/>
+  <text x="456" y="362" class="text-muted" font-weight="600" font-size="12">frontend-proxy</text>
+  <text x="456" y="378" class="text-muted" font-size="10">team-core-platform</text>
+  <text x="456" y="394" class="text-muted" font-size="10">(External Upstream Caller)</text>
+
+  <path d="M598 374 L632 374" stroke="#475569" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+  <!-- OWNED NODE 1: checkout-service -->
+  <rect x="636" y="340" width="170" height="68" class="node-owned"/>
+  <text x="648" y="362" class="text-white" font-weight="700" font-size="12">checkout-service ⭐</text>
+  <text x="648" y="378" class="badge-team-text" font-size="10">team-payments (OWNED)</text>
+  <text x="648" y="394" class="badge-flagged-text" font-size="10">Alert Origin: 4350ms</text>
+
+  <path d="M806 374 L840 374" stroke="#818cf8" stroke-width="2"/>
+
+  <!-- OWNED NODE 2: payment-gateway -->
+  <rect x="844" y="340" width="166" height="68" class="node-owned"/>
+  <text x="856" y="362" class="text-white" font-weight="700" font-size="12">payment-gateway ⭐</text>
+  <text x="856" y="378" class="badge-team-text" font-size="10">team-payments (OWNED)</text>
+  <text x="856" y="394" class="text-muted" font-size="10">Latency: 4200ms • 500 Spike</text>
+
+  <path d="M1010 374 L1044 374" stroke="#ef4444" stroke-width="2"/>
+
+  <!-- OWNED NODE 3: bank-network (Root Cause) -->
+  <rect x="1048" y="340" width="186" height="68" class="node-owned" stroke="#ef4444"/>
+  <text x="1060" y="362" class="text-white" font-weight="700" font-size="12">⚡ bank-network ⭐</text>
+  <text x="1060" y="378" class="badge-unsupported-text" font-size="11">ROOT CAUSE (OWNED)</text>
+  <text x="1060" y="396" class="text-muted" font-size="10">504 Socket Timeout (4000ms)</text>
+
+  <!-- External Node: inventory-service -->
+  <path d="M720 408 L720 422 L1250 422 L1250 390 L1260 390" stroke="#475569" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <rect x="1256" y="344" width="144" height="60" class="node-external"/>
+  <text x="1268" y="364" class="text-muted" font-size="11">inventory-service</text>
+  <text x="1268" y="378" class="text-muted" font-size="10">team-core-platform</text>
+  <text x="1268" y="392" class="text-muted" font-size="10">(External Callee: OK)</text>
+
+
+  <!-- DRAFTED HYPOTHESIS SECTION (READ-ONLY FOR TEAM MEMBERS) -->
+  <rect x="420" y="448" width="996" height="178" class="card" filter="url(#shadow-team)"/>
+  
+  <text x="444" y="474" class="text-subheading">Root-Cause Hypothesis</text>
+  
+  <rect x="620" y="460" width="150" height="20" rx="4" fill="#1e1b4b" stroke="#818cf8" stroke-width="1"/>
+  <text x="695" y="474" class="badge-team-text" text-anchor="middle">🔒 Read-Only for Team</text>
+
+  <rect x="780" y="460" width="130" height="20" rx="4" fill="#78350f"/>
+  <text x="845" y="474" class="badge-flagged-text" text-anchor="middle">Confidence: MEDIUM</text>
+
+  <!-- Non-editable Summary Box -->
+  <rect x="444" y="490" width="948" height="64" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="458" y="512" class="text-white" font-size="13">
+    bank-network timed out after 4000ms (504 Gateway Timeout), which stalled payment-gateway connection pool and
+  </text>
+  <text x="458" y="532" class="text-white" font-size="13">
+    cascaded to checkout-service returning 500 errors to frontend-proxy. Inventory service remained healthy on branch edge.
+  </text>
+
+  <!-- Cascade Path & Root Cause Metadata tags -->
+  <text x="444" y="574" class="text-muted" font-size="12">Root Cause Service:</text>
+  <rect x="560" y="560" width="114" height="22" rx="4" fill="#450a0a" stroke="#ef4444" stroke-width="1"/>
+  <text x="617" y="575" class="badge-unsupported-text" text-anchor="middle">bank-network</text>
+
+  <text x="740" y="574" class="text-muted" font-size="12">Cascade Path:</text>
+  <rect x="830" y="560" width="310" height="22" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="985" y="575" class="code-font" font-size="11" fill="#e2e8f0" text-anchor="middle">checkout-service → payment-gateway → bank-network</text>
+
+  <text x="1160" y="574" class="text-muted" font-size="11">Final hypothesis editable by Admin (10001) only</text>
+
+
+  <!-- FACT-CHECKING CLAIMS TABLE (TEAM VIEW) -->
+  <rect x="420" y="638" width="996" height="258" class="card" filter="url(#shadow-team)"/>
+  <text x="444" y="664" class="text-subheading">Validated Claims &amp; Evidence (Read-Only Context)</text>
+  <text x="1060" y="664" class="text-muted" font-size="11">Validated against context object</text>
+
+  <!-- Table Header Row -->
+  <rect x="444" y="678" width="948" height="28" rx="4" fill="#0f172a"/>
+  <text x="456" y="696" class="text-muted" font-size="11" font-weight="700">ID</text>
+  <text x="496" y="696" class="text-muted" font-size="11" font-weight="700">TYPE</text>
+  <text x="590" y="696" class="text-muted" font-size="11" font-weight="700">CLAIM STATEMENT</text>
+  <text x="940" y="696" class="text-muted" font-size="11" font-weight="700">CITED EVIDENCE</text>
+  <text x="1140" y="696" class="text-muted" font-size="11" font-weight="700">VALIDATOR STATUS</text>
+
+  <!-- Row 1 -->
+  <rect x="444" y="710" width="948" height="34" rx="2" fill="#1e293b"/>
+  <text x="456" y="732" class="code-font" fill="#e2e8f0">c1</text>
+  <text x="496" y="732" class="text-muted" font-size="11">causal_edge</text>
+  <text x="590" y="732" class="text-white" font-size="12">payment-gateway calls bank-network</text>
+  <text x="940" y="732" class="code-font" fill="#818cf8">edge-2</text>
+  <rect x="1140" y="716" width="110" height="22" class="badge-ok"/>
+  <text x="1195" y="731" class="badge-ok-text" text-anchor="middle">✓ SUPPORTED</text>
+
+  <!-- Row 2 -->
+  <rect x="444" y="748" width="948" height="34" rx="2" fill="#0f172a" opacity="0.8"/>
+  <text x="456" y="770" class="code-font" fill="#e2e8f0">c2</text>
+  <text x="496" y="770" class="text-muted" font-size="11">status_code</text>
+  <text x="590" y="770" class="text-white" font-size="12">bank-network returned 504 Gateway Timeout</text>
+  <text x="940" y="770" class="code-font" fill="#818cf8">span-bn-04 (504)</text>
+  <rect x="1140" y="754" width="110" height="22" class="badge-ok"/>
+  <text x="1195" y="769" class="badge-ok-text" text-anchor="middle">✓ SUPPORTED</text>
+
+  <!-- Row 3: Flagged -->
+  <rect x="444" y="786" width="948" height="42" rx="4" fill="#450a0a" stroke="#dc2626" stroke-width="1"/>
+  <text x="456" y="812" class="code-font" fill="#fca5a5" font-weight="700">c3</text>
+  <text x="496" y="812" class="badge-unsupported-text" font-size="11">timestamp</text>
+  <text x="590" y="804" class="text-white" font-size="12">Latency degradation initiated at 15:42:00 UTC</text>
+  <text x="590" y="820" class="badge-unsupported-text" font-size="10">Reason: Cited timestamp outside 15m window (15:45 - 16:15 UTC)</text>
+  <text x="940" y="812" class="code-font" fill="#fca5a5">log-bn-01</text>
+  <rect x="1140" y="794" width="130" height="26" class="badge-unsupported"/>
+  <text x="1205" y="811" class="badge-unsupported-text" text-anchor="middle">✗ UNSUPPORTED</text>
+
+  <!-- Row 4 -->
+  <rect x="444" y="832" width="948" height="34" rx="2" fill="#1e293b"/>
+  <text x="456" y="854" class="code-font" fill="#e2e8f0">c4</text>
+  <text x="496" y="854" class="text-muted" font-size="11">latency</text>
+  <text x="590" y="854" class="text-white" font-size="12">payment-gateway took 4200ms</text>
+  <text x="940" y="854" class="code-font" fill="#818cf8">span-pg-03 (4200ms)</text>
+  <rect x="1140" y="838" width="110" height="22" class="badge-ok"/>
+  <text x="1195" y="853" class="badge-ok-text" text-anchor="middle">✓ SUPPORTED</text>
+
+
+  <!-- BOTTOM SECTION: TEAM ON-CALL & ACTIONS -->
+  <rect x="420" y="908" width="996" height="146" class="card" filter="url(#shadow-team)"/>
+  <text x="444" y="934" class="text-subheading">team-payments On-Call Roster &amp; Telegram Bot Dispatch</text>
+
+  <!-- Member 1: Dave -->
+  <rect x="444" y="948" width="450" height="42" rx="4" fill="#1e1b4b" stroke="#818cf8" stroke-width="1"/>
+  <circle cx="466" cy="969" r="10" fill="#6366f1"/>
+  <text x="466" y="973" class="text-white" font-size="11" font-weight="700" text-anchor="middle">DD</text>
+  <text x="486" y="964" class="text-white" font-size="12" font-weight="600">Dev Dave (100101) - You</text>
+  <text x="486" y="978" class="text-muted" font-size="10">Mid • telegram: chat_101</text>
+  <rect x="790" y="958" width="90" height="22" class="badge-ok"/>
+  <text x="835" y="973" class="badge-ok-text" text-anchor="middle">ON-CALL NOW</text>
+
+  <!-- Member 2: Sara -->
+  <rect x="444" y="996" width="450" height="42" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <circle cx="466" cy="1017" r="10" fill="#475569"/>
+  <text x="466" y="1021" class="text-white" font-size="11" font-weight="700" text-anchor="middle">SS</text>
+  <text x="486" y="1012" class="text-white" font-size="12" font-weight="600">Sara Senior (100102)</text>
+  <text x="486" y="1026" class="text-muted" font-size="10">Lead • telegram: chat_102</text>
+  <rect x="790" y="1006" width="90" height="22" rx="4" fill="#334155"/>
+  <text x="835" y="1021" class="text-muted" font-size="10" text-anchor="middle">AVAILABLE</text>
+
+  <!-- Team Actions Box -->
+  <rect x="918" y="948" width="478" height="90" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="936" y="972" class="text-white" font-size="12" font-weight="600">Team Responder Actions:</text>
+  <text x="936" y="990" class="text-muted" font-size="11">1. Acknowledge alert via Telegram bot</text>
+  <text x="936" y="1006" class="text-muted" font-size="11">2. Run local rollback or circuit breaker mitigation on bank-network</text>
+  <text x="936" y="1022" class="text-muted" font-size="11">3. Notify Admin (10001) once ready to finalize incident</text>
+
+</svg>"""
+
+
+def build_empty_state_svg() -> str:
+    return """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800">
+  <defs>
+    <style>
+      .bg { fill: #0b1120; }
+      .card { fill: #1e293b; stroke: #334155; stroke-width: 1; rx: 8; }
+      .text-white { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; fill: #f8fafc; }
+      .text-muted { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; fill: #94a3b8; }
+      .text-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 22px; font-weight: 700; fill: #f8fafc; }
+      .badge-ok { fill: #14532d; stroke: #16a34a; stroke-width: 1; rx: 4; }
+      .badge-ok-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; font-weight: 700; fill: #4ade80; }
+      .btn-primary { fill: #0284c7; rx: 6; cursor: pointer; }
+      .btn-primary-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; font-weight: 600; fill: #ffffff; text-anchor: middle; }
+    </style>
+    <filter id="shadow-empty" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="800" class="bg"/>
+
+  <!-- Top Nav Bar -->
+  <rect x="0" y="0" width="1200" height="64" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+  <rect x="24" y="16" width="32" height="32" rx="8" fill="#0284c7"/>
+  <path d="M40 22 L48 38 L32 38 Z" fill="#ffffff" opacity="0.9"/>
+  <text x="68" y="38" class="text-title" font-size="18">PERIMETER</text>
+  <text x="180" y="38" class="text-muted" font-size="13">| Incident Intelligence &amp; Autonomous Triage</text>
+  <rect x="1000" y="18" width="176" height="28" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="1088" y="36" class="text-white" font-size="12" text-anchor="middle">System Healthy (0 Alerts)</text>
+
+  <!-- Center Card -->
+  <rect x="200" y="120" width="800" height="600" class="card" filter="url(#shadow-empty)"/>
+
+  <!-- Large Healthy Shield Graphic -->
+  <circle cx="600" cy="240" r="54" fill="#064e3b" stroke="#10b981" stroke-width="2"/>
+  <path d="M578 240 L594 256 L624 226" stroke="#4ade80" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <text x="600" y="330" class="text-title" text-anchor="middle">All Systems Operational</text>
+  <text x="600" y="360" class="text-muted" font-size="14" text-anchor="middle">
+    Zero active incidents or firing alerts detected across the perimeter.
+  </text>
+
+  <!-- Health Metrics Grid -->
+  <rect x="250" y="400" width="154" height="100" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="327" y="434" class="text-muted" font-size="11" text-anchor="middle">MONITORED SERVICES</text>
+  <text x="327" y="468" class="text-white" font-size="24" font-weight="700" text-anchor="middle">6 / 6</text>
+  <text x="327" y="488" class="badge-ok-text" font-size="10" text-anchor="middle">100% HEALTHY</text>
+
+  <rect x="424" y="400" width="154" height="100" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="501" y="434" class="text-muted" font-size="11" text-anchor="middle">FIRING ALERTS</text>
+  <text x="501" y="468" class="badge-ok-text" font-size="24" font-weight="700" text-anchor="middle">0</text>
+  <text x="501" y="488" class="text-muted" font-size="10" text-anchor="middle">Prometheus Alertmanager</text>
+
+  <rect x="598" y="400" width="154" height="100" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="675" y="434" class="text-muted" font-size="11" text-anchor="middle">TRACE CORRELATION</text>
+  <text x="675" y="468" class="text-white" font-size="24" font-weight="700" text-anchor="middle">IDLE</text>
+  <text x="675" y="488" class="badge-ok-text" font-size="10" text-anchor="middle">Engine Standby</text>
+
+  <rect x="772" y="400" width="178" height="100" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="861" y="434" class="text-muted" font-size="11" text-anchor="middle">ROUTER &amp; ON-CALL</text>
+  <text x="861" y="468" class="text-white" font-size="20" font-weight="700" text-anchor="middle">READY</text>
+  <text x="861" y="488" class="text-muted" font-size="10" text-anchor="middle">2 Teams Covered</text>
+
+  <!-- View Context Toggle -->
+  <rect x="250" y="530" width="700" height="54" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="270" y="562" class="text-white" font-size="12">
+    💡 <tspan font-weight="600">Role Context:</tspan> Admins see system-wide health (6 services); Team members see their scoped services.
+  </text>
+
+  <!-- Action Buttons -->
+  <rect x="420" y="614" width="170" height="40" class="btn-primary"/>
+  <text x="505" y="639" class="btn-primary-text">View Resolved Incidents</text>
+
+  <rect x="610" y="614" width="170" height="40" rx="6" fill="#334155" stroke="#475569" stroke-width="1"/>
+  <text x="695" y="639" class="text-white" font-size="13" font-weight="500" text-anchor="middle">Run Chaos Scenario</text>
+
+</svg>"""
+
+
+def main():
+    admin_svg = build_admin_svg()
+    team_svg = build_team_svg()
+    empty_svg = build_empty_state_svg()
+
+    # Verify XML validity
+    for name, content in [
+        ("admin-incident-view.svg", admin_svg),
+        ("team-incident-view.svg", team_svg),
+        ("empty-state-view.svg", empty_svg),
+    ]:
+        try:
+            ET.fromstring(content)
+            out_path = OUTPUT_DIR / name
+            out_path.write_text(content, encoding="utf-8")
+            print(f"Generated and validated {out_path} ({len(content)} bytes)")
+        except ET.ParseError as e:
+            print(f"XML Parse error in {name}: {e}")
+            raise
+
+
+if __name__ == "__main__":
+    main()
