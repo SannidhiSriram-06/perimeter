@@ -97,7 +97,7 @@ The tasks in `TEAM_ROLES.txt` still stand, but some got easier or changed. Anyth
 - The demo password and the seed data are for development only. Never load `deploy/db/init.sql` into a shared or real database.
 - Kubernetes: Alertmanager is on and points at the BFF, but the BFF is not deployed in Minikube yet, so alert delivery there fails and retries.
 - Rate limits are counted per process (in memory).
-- Not built yet: signal compressor, the LLM call and validator, dashboards, router and Telegram bot, chaos harness, Terraform, ArgoCD, Vault.
+- Not built yet: dashboards, router and Telegram bot, chaos harness, Terraform, ArgoCD, Vault.
 
 ## 6. If something breaks
 

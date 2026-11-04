@@ -7,12 +7,13 @@ Run from the engine directory:
 import dataclasses
 from typing import Annotated, Any, Dict, List, Optional
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
+from .compressor import DEFAULT_TOKEN_BUDGET, compress
 from .graph import BlastRadiusReport, Direction, ServiceDependencyGraph
-from .llm import GroqClient, LLMClient, build_context, generate_draft
-from .mock.fixtures import get_sample_trace_spans
+from .llm import GroqClient, LLMClient, generate_draft
+from .mock.fixtures import get_sample_logs, get_sample_metrics, get_sample_trace_spans
 
 app = FastAPI(title="Perimeter correlation engine")
 
@@ -44,6 +45,9 @@ class DraftRequest(CorrelateRequest):
     alertname: str = Field(default="alert", max_length=100)
     fired_at: Optional[str] = Field(default=None, max_length=40)
     direction: Direction = "both"
+    logs: Optional[List[Dict[str, Any]]] = Field(default=None, max_length=10_000, description="Log lines (id, service, level, timestamp, message)")
+    metrics: Optional[List[Dict[str, Any]]] = Field(default=None, max_length=10_000, description="Metric samples (id, service, name, value, baseline, timestamp)")
+    token_budget: int = Field(default=DEFAULT_TOKEN_BUDGET, ge=500, le=20_000, description="Estimated tokens (characters / 4) for the context")
 
 
 def llm_client() -> LLMClient:
@@ -61,7 +65,15 @@ def draft(request: DraftRequest, client: Annotated[LLMClient, Depends(llm_client
     graph.load_spans(spans)
     report = graph.get_blast_radius_report(request.service, request.max_depth, request.direction)
     alert = {"alertname": request.alertname, "service": request.service, "fired_at": request.fired_at}
-    context = build_context(request.incident_id, alert, graph, report.impacted_services, spans)
+    # shortcut: logs and metrics fall back to the mock fixtures until the event store exists.
+    logs = request.logs if request.logs is not None else get_sample_logs()
+    metrics = request.metrics if request.metrics is not None else get_sample_metrics()
+    try:
+        context = compress(
+            request.incident_id, alert, graph, report.impacted_services, spans, logs, metrics, request.token_budget
+        )
+    except ValueError as err:
+        raise HTTPException(422, str(err)) from err
     outcome = generate_draft(context, client, known_services=graph.graph.nodes)
     return {
         "status": outcome.status,
