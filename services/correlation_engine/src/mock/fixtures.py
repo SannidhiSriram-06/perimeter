@@ -188,6 +188,10 @@ def get_sample_trace_spans() -> List[Dict[str, Any]]:
     return all_spans
 
 
+# Alert time used by the mock logs and metrics.
+FIRED_AT = "2026-10-12T16:00:00Z"
+
+
 def get_sample_logs() -> List[Dict[str, Any]]:
     """Mock log lines for the checkout cascade. `recommendation-engine` is unrelated noise outside the blast radius."""
     return [
@@ -203,11 +207,11 @@ def get_sample_logs() -> List[Dict[str, Any]]:
 def get_sample_metrics() -> List[Dict[str, Any]]:
     """Mock metric samples. `baseline` is the normal value, used to score how abnormal the sample is."""
     return [
-        {"id": "met-co-01", "service": "checkout-service", "name": "p95_latency_seconds", "value": 4.35, "baseline": 0.4, "timestamp": "2026-10-12T16:00:00Z"},
-        {"id": "met-pg-01", "service": "payment-gateway", "name": "p95_latency_seconds", "value": 4.2, "baseline": 0.3, "timestamp": "2026-10-12T16:00:00Z"},
-        {"id": "met-bn-01", "service": "bank-network", "name": "error_rate_percent", "value": 62.0, "baseline": 0.5, "timestamp": "2026-10-12T16:00:00Z"},
-        {"id": "met-inv-01", "service": "inventory-service", "name": "p95_latency_seconds", "value": 0.05, "baseline": 0.05, "timestamp": "2026-10-12T16:00:00Z"},
-        {"id": "met-rec-01", "service": "recommendation-engine", "name": "error_rate_percent", "value": 40.0, "baseline": 0.5, "timestamp": "2026-10-12T16:00:00Z"},
+        {"id": "met-co-01", "service": "checkout-service", "name": "p95_latency_seconds", "value": 4.35, "baseline": 0.4, "timestamp": FIRED_AT},
+        {"id": "met-pg-01", "service": "payment-gateway", "name": "p95_latency_seconds", "value": 4.2, "baseline": 0.3, "timestamp": FIRED_AT},
+        {"id": "met-bn-01", "service": "bank-network", "name": "error_rate_percent", "value": 62.0, "baseline": 0.5, "timestamp": FIRED_AT},
+        {"id": "met-inv-01", "service": "inventory-service", "name": "p95_latency_seconds", "value": 0.05, "baseline": 0.05, "timestamp": FIRED_AT},
+        {"id": "met-rec-01", "service": "recommendation-engine", "name": "error_rate_percent", "value": 40.0, "baseline": 0.5, "timestamp": FIRED_AT},
     ]
 
 

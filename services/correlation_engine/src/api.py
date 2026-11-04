@@ -54,7 +54,7 @@ def llm_client() -> LLMClient:
     return GroqClient()
 
 
-@app.post("/draft")
+@app.post("/draft", responses={422: {"description": "token_budget is too small for the blast radius and trace edges"}})
 def draft(request: DraftRequest, client: Annotated[LLMClient, Depends(llm_client)]) -> Dict[str, Any]:
     """Correlate, build the context, ask the model once and fact-check the answer.
 

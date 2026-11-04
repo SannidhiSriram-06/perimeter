@@ -42,13 +42,15 @@ def test_evidence_ids_are_unchanged(graph) -> None:
     ctx = run(graph)
     source_ids = {s["span_id"] for s in SPANS} | {x["id"] for x in LOGS} | {x["id"] for x in METRICS}
     assert set(ids(ctx)) <= source_ids
-    assert "span-bn-04" in ids(ctx) and "log-bn-01" in ids(ctx)
+    assert "span-bn-04" in ids(ctx)
+    assert "log-bn-01" in ids(ctx)
 
 
 def test_services_outside_the_blast_radius_never_appear(graph) -> None:
     ctx = run(graph)
     assert all(e["service"] != "recommendation-engine" for e in ctx["evidence"])
-    assert "log-rec-01" not in ids(ctx) and "met-rec-01" not in ids(ctx)
+    assert "log-rec-01" not in ids(ctx)
+    assert "met-rec-01" not in ids(ctx)
     narrow = run(graph, blast=["bank-network", "payment-gateway"])
     assert {e["service"] for e in narrow["evidence"]} <= {"bank-network", "payment-gateway"}
     assert narrow["blast_radius"] == ["bank-network", "payment-gateway"]
@@ -72,8 +74,11 @@ def test_closer_service_wins_a_tie_on_anomaly(graph) -> None:
 
 
 def test_ranking_is_deterministic(graph) -> None:
-    assert run(graph) == run(graph)
-    assert ids(run(graph)) == ids(run(graph, spans=list(reversed(SPANS)), logs=list(reversed(LOGS))))
+    first = run(graph)
+    second = run(graph)
+    assert first == second
+    shuffled = run(graph, spans=list(reversed(SPANS)), logs=list(reversed(LOGS)))
+    assert ids(first) == ids(shuffled)
 
 
 @pytest.mark.parametrize("budget", [500, 600, 800, 1000, 1500, 3000])

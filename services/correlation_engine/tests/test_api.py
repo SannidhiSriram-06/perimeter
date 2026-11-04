@@ -125,7 +125,8 @@ def test_draft_endpoint_sends_ranked_logs_and_metrics_to_the_model() -> None:
         response = client.post("/draft", json={"incident_id": "inc-1", "service": "checkout-service", "token_budget": 3000})
     assert response.status_code == 200
     assert scripted.calls
-    assert "log-bn-01" in seen["user"] and "met-bn-01" in seen["user"]
+    assert "log-bn-01" in seen["user"]
+    assert "met-bn-01" in seen["user"]
     assert "recommendation-engine" not in seen["user"]
 
 

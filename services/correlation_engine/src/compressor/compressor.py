@@ -100,55 +100,61 @@ def _candidates(
 ) -> List[Tuple[float, Dict[str, Any]]]:
     span_list = [s for s in spans if s.get("service_name") in inside and s.get("span_id")]
     longest = max((float(s.get("duration_ms") or 0) for s in span_list), default=0.0)
-    out: List[Tuple[float, Dict[str, Any]]] = []
-
-    for s in span_list:
-        status = s.get("status_code") or 0
-        error = 1.0 if status >= 500 else 0.6 if status >= 400 else 0.0
-        slow = float(s.get("duration_ms") or 0) / longest if longest > 0 else 0.0
-        out.append((
-            0.6 * error + 0.4 * slow,
-            {
-                "id": s["span_id"],
-                "kind": "span",
-                "service": s["service_name"],
-                "duration_ms": s.get("duration_ms"),
-                "status_code": s.get("status_code"),
-                "message": _short(s.get("status_message")),
-            },
-        ))
-
-    for log in logs:
-        if log.get("service") in inside and log.get("id"):
-            message = str(log.get("message") or "")
-            level = _LOG_LEVEL_SCORE.get(str(log.get("level") or "").lower(), 0.1)
-            if level < 0.5 and any(w in message.lower() for w in _ERROR_WORDS):
-                level = 0.7
-            out.append((
-                level,
-                {
-                    "id": log["id"],
-                    "kind": "log",
-                    "service": log["service"],
-                    "timestamp": log.get("timestamp"),
-                    "message": _short(message),
-                },
-            ))
-
-    for m in metrics:
-        if m.get("service") in inside and m.get("id"):
-            out.append((
-                _metric_anomaly(m),
-                {
-                    "id": m["id"],
-                    "kind": "metric",
-                    "service": m["service"],
-                    "name": m.get("name"),
-                    "value": m.get("value"),
-                    "timestamp": m.get("timestamp"),
-                },
-            ))
+    out = [_span_candidate(s, longest) for s in span_list]
+    out += [_log_candidate(log) for log in logs if log.get("service") in inside and log.get("id")]
+    out += [_metric_candidate(m) for m in metrics if m.get("service") in inside and m.get("id")]
     return out
+
+
+def _error_score(status: int) -> float:
+    if status >= 500:
+        return 1.0
+    return 0.6 if status >= 400 else 0.0
+
+
+def _span_candidate(span: Mapping[str, Any], longest: float) -> Tuple[float, Dict[str, Any]]:
+    duration = float(span.get("duration_ms") or 0)
+    slow = duration / longest if longest > 0 else 0.0
+    item = {
+        "id": span["span_id"],
+        "kind": "span",
+        "service": span["service_name"],
+        "duration_ms": span.get("duration_ms"),
+        "status_code": span.get("status_code"),
+        "message": _short(span.get("status_message")),
+    }
+    return 0.6 * _error_score(span.get("status_code") or 0) + 0.4 * slow, item
+
+
+def _log_score(log: Mapping[str, Any]) -> float:
+    level = _LOG_LEVEL_SCORE.get(str(log.get("level") or "").lower(), 0.1)
+    message = str(log.get("message") or "").lower()
+    if level < 0.5 and any(w in message for w in _ERROR_WORDS):
+        return 0.7
+    return level
+
+
+def _log_candidate(log: Mapping[str, Any]) -> Tuple[float, Dict[str, Any]]:
+    item = {
+        "id": log["id"],
+        "kind": "log",
+        "service": log["service"],
+        "timestamp": log.get("timestamp"),
+        "message": _short(log.get("message") or ""),
+    }
+    return _log_score(log), item
+
+
+def _metric_candidate(metric: Mapping[str, Any]) -> Tuple[float, Dict[str, Any]]:
+    item = {
+        "id": metric["id"],
+        "kind": "metric",
+        "service": metric["service"],
+        "name": metric.get("name"),
+        "value": metric.get("value"),
+        "timestamp": metric.get("timestamp"),
+    }
+    return _metric_anomaly(metric), item
 
 
 def _metric_anomaly(metric: Mapping[str, Any]) -> float:
