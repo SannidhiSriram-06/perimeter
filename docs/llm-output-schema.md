@@ -138,6 +138,10 @@ Extra rules that apply to the whole draft:
 3. Every `postmortem.timeline[].claim_ids` entry must refer to a claim in `claims`, and that claim must be `supported` for the timeline row to show without a warning. A row with no `claim_ids` also gets the warning, and a claim with no `evidence_ids` is unsupported. The model API ignores `minItems`, so these are flagged instead of rejecting the whole draft.
 4. Any service name in free text that is not in `blast_radius` is flagged (simple string match against the known service list).
 
+### Claim text shown to reviewers
+
+The validator never checks the model-written `text`. It builds a `rendered_text` for each claim from the fields it did check (service, value, status code, edge, timestamp), and the draft returned by the pipeline has `text` replaced by that rendered sentence. A green tick therefore always refers to the sentence the reviewer reads.
+
 ## Worked example
 
 Output for the context above (mock checkout cascade):
