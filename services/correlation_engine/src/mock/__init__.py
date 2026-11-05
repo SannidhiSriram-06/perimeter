@@ -7,6 +7,8 @@ testing of the correlation engine and blast-radius BFS algorithms without a live
 from .fixtures import (
     SYNTHETIC_TRACES,
     get_sample_alert_payload,
+    get_sample_logs,
+    get_sample_metrics,
     get_sample_trace_spans,
 )
 
@@ -14,4 +16,6 @@ __all__ = [
     "SYNTHETIC_TRACES",
     "get_sample_trace_spans",
     "get_sample_alert_payload",
+    "get_sample_logs",
+    "get_sample_metrics",
 ]
