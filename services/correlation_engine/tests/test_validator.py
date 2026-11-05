@@ -341,3 +341,35 @@ def test_claim_without_evidence_is_unsupported(context, draft) -> None:
 
 def only_claim(result, claim_id):
     return next(c for c in result.claims if c.id == claim_id)
+
+
+# --- rendered claim text (audit N-04) ---------------------------------------------------------------
+
+
+def test_rendered_text_comes_from_fields_not_from_model_text(context, draft) -> None:
+    claim(draft, type="latency", service="payment-gateway", value=4200, unit="ms", evidence_ids=["span-pg-03"])
+    draft["claims"][0]["text"] = "payment-gateway responded in 12 ms and was healthy"
+    result = only(check(context, draft))
+    assert result.supported
+    assert result.rendered_text == "payment-gateway took 4200 ms"
+    assert "12 ms" not in result.rendered_text
+
+
+@pytest.mark.parametrize(
+    "fields, expected",
+    [
+        ({"type": "service_ref", "service": "bank-network"}, "bank-network is in the blast radius"),
+        ({"type": "causal_edge", "source": "a", "target": "b"}, "a calls b"),
+        ({"type": "status_code", "service": "bank-network", "status_code": 503}, "bank-network returned status 503"),
+        ({"type": "metric_value", "service": "bank-network", "value": 4.4, "unit": "percent"}, "bank-network: metric value 4.4 percent"),
+        ({"type": "metric_value", "value": 3}, "metric value 3"),
+        ({"type": "timestamp", "timestamp": "2026-10-12T16:00:05Z"}, "event at 2026-10-12T16:00:05+00:00"),
+        ({"type": "latency"}, "? took ?"),
+        ({"type": "causal_edge"}, "? calls ?"),
+        ({"type": "status_code"}, "? returned status ?"),
+        ({"type": "timestamp"}, "event at ?"),
+    ],
+)
+def test_render_claim_text_for_every_type(context, draft, fields, expected) -> None:
+    claim(draft, **fields)
+    assert only(check(context, draft)).rendered_text == expected

@@ -216,3 +216,11 @@ def test_llm_failure_is_reported_not_raised(context) -> None:
     assert outcome.status == "llm_error"
     assert outcome.error == "model refused"
     assert outcome.raw is None
+
+
+def test_returned_claim_text_is_rendered_from_checked_fields(context, draft) -> None:
+    for c in draft["claims"]:
+        c["text"] = "totally unverified model prose"
+    outcome, _ = run(context, json.dumps(draft))
+    assert all("unverified" not in c["text"] for c in outcome.draft["claims"])
+    assert [c["text"] for c in outcome.draft["claims"]] == [r.rendered_text for r in outcome.validation.claims]

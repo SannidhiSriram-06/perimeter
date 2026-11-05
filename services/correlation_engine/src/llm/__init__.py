@@ -5,7 +5,7 @@ from .client import DEFAULT_MODEL, GroqClient, LLMClient, LLMError, ScriptedClie
 from .draft import DraftOutcome, generate_draft
 from .prompt import SYSTEM_PROMPT, build_prompt
 from .schema import Draft
-from .validator import ClaimResult, DraftIssue, DraftRejected, ValidationResult, validate_draft
+from .validator import ClaimResult, DraftIssue, DraftRejected, ValidationResult, render_claim_text, validate_draft
 
 __all__ = [
     "GroqClient",
@@ -22,6 +22,7 @@ __all__ = [
     "ValidationResult",
     "build_context",
     "build_prompt",
+    "render_claim_text",
     "generate_draft",
     "validate_draft",
 ]
