@@ -17,3 +17,9 @@ test('malformed stored hash never verifies', async () => {
     assert.equal(await verifyPassword('anything', bad), false);
   }
 });
+
+test('stored hashes with invalid hex or wrong key length never verify (N-05)', async () => {
+  for (const bad of ['scrypt$aa$zz', 'scrypt$zz$zz', 'scrypt$aa$0', 'scrypt$aa$', 'scrypt$aa$abcd']) {
+    assert.equal(await verifyPassword('anything', bad), false, bad);
+  }
+});
