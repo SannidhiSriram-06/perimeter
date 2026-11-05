@@ -43,4 +43,8 @@ def generate_draft(
         result = validate_draft(data, context, known_services)
     except DraftRejected as err:
         return DraftOutcome("rejected", raw=raw, error=str(err))
+    # Show only text built from the checked fields: the model's claim `text` is never verified (audit N-04).
+    rendered = {c.id: c.rendered_text for c in result.claims}
+    for claim in data["claims"]:
+        claim["text"] = rendered[claim["id"]]
     return DraftOutcome("ok" if result.ok else "flagged", draft=data, validation=result, raw=raw)

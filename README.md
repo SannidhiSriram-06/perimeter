@@ -47,7 +47,7 @@ Green components exist in the repository today. Grey components are planned. See
 | Minikube bootstrap: Prometheus, Alertmanager, Grafana, OTel Collector (Helm) | Built |
 | Dockerfiles and a full local Compose stack (Postgres, engine, BFF) | Built |
 | CI: tests with coverage gate, lint, security scans, image builds | Built |
-| Signal compressor (rank and trim to token budget) | Planned |
+| Signal compressor (rank and trim to token budget) | Done (`services/correlation_engine/src/compressor`, used by `POST /draft`) |
 | LLM root-cause draft and fact-checking validator (engine `POST /draft`, saved on the incident by the webhook; needs `GROQ_API_KEY`) | Built, tested with a scripted model |
 | React dashboards | Planned |
 | On-call router and Telegram bot | Planned |

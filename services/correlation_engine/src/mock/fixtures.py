@@ -188,6 +188,33 @@ def get_sample_trace_spans() -> List[Dict[str, Any]]:
     return all_spans
 
 
+# Alert time used by the mock logs and metrics.
+FIRED_AT = "2026-10-12T16:00:00Z"
+
+
+def get_sample_logs() -> List[Dict[str, Any]]:
+    """Mock log lines for the checkout cascade. `recommendation-engine` is unrelated noise outside the blast radius."""
+    return [
+        {"id": "log-bn-01", "service": "bank-network", "level": "error", "timestamp": "2026-10-12T16:00:02Z", "message": "socket read timeout after 4000ms"},
+        {"id": "log-bn-02", "service": "bank-network", "level": "info", "timestamp": "2026-10-12T15:59:50Z", "message": "connection pool 18/20 in use"},
+        {"id": "log-pg-01", "service": "payment-gateway", "level": "error", "timestamp": "2026-10-12T16:00:03Z", "message": "upstream bank-network timed out, returning 500"},
+        {"id": "log-co-01", "service": "checkout-service", "level": "warn", "timestamp": "2026-10-12T16:00:04Z", "message": "payment step slower than 2s"},
+        {"id": "log-inv-01", "service": "inventory-service", "level": "info", "timestamp": "2026-10-12T16:00:01Z", "message": "stock lookup ok"},
+        {"id": "log-rec-01", "service": "recommendation-engine", "level": "error", "timestamp": "2026-10-12T16:00:01Z", "message": "worker pool exhausted"},
+    ]
+
+
+def get_sample_metrics() -> List[Dict[str, Any]]:
+    """Mock metric samples. `baseline` is the normal value, used to score how abnormal the sample is."""
+    return [
+        {"id": "met-co-01", "service": "checkout-service", "name": "p95_latency_seconds", "value": 4.35, "baseline": 0.4, "timestamp": FIRED_AT},
+        {"id": "met-pg-01", "service": "payment-gateway", "name": "p95_latency_seconds", "value": 4.2, "baseline": 0.3, "timestamp": FIRED_AT},
+        {"id": "met-bn-01", "service": "bank-network", "name": "error_rate_percent", "value": 62.0, "baseline": 0.5, "timestamp": FIRED_AT},
+        {"id": "met-inv-01", "service": "inventory-service", "name": "p95_latency_seconds", "value": 0.05, "baseline": 0.05, "timestamp": FIRED_AT},
+        {"id": "met-rec-01", "service": "recommendation-engine", "name": "error_rate_percent", "value": 40.0, "baseline": 0.5, "timestamp": FIRED_AT},
+    ]
+
+
 def get_sample_alert_payload() -> Dict[str, Any]:
     """Return a realistic Prometheus Alertmanager webhook JSON payload.
 

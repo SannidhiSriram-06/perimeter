@@ -31,6 +31,8 @@ class ClaimResult:
     id: str
     supported: bool
     reasons: List[str] = field(default_factory=list)
+    # Plain statement built only from the fields the validator checked. Show this, not the model-written `text`.
+    rendered_text: str = ""
 
 
 @dataclass
@@ -132,11 +134,12 @@ def _check_claim(
     edge_ids: set,
     window: Optional[tuple],
 ) -> ClaimResult:
+    rendered = render_claim_text(claim)
     if not claim.evidence_ids:
-        return ClaimResult(claim.id, False, ["cites no evidence"])
+        return ClaimResult(claim.id, False, ["cites no evidence"], rendered)
     unknown = [eid for eid in claim.evidence_ids if eid not in evidence and eid not in edge_ids]
     if unknown:
-        return ClaimResult(claim.id, False, [f"cites evidence that is not in the context: {', '.join(unknown)}"])
+        return ClaimResult(claim.id, False, [f"cites evidence that is not in the context: {', '.join(unknown)}"], rendered)
     cited = [evidence[eid] for eid in claim.evidence_ids if eid in evidence]
 
     checks: Dict[str, Callable[[], Optional[str]]] = {
@@ -148,7 +151,28 @@ def _check_claim(
         "timestamp": lambda: _timestamp(claim, cited, window),
     }
     problem = checks[claim.type]()
-    return ClaimResult(claim.id, problem is None, [problem] if problem else [])
+    return ClaimResult(claim.id, problem is None, [problem] if problem else [], rendered)
+
+
+def render_claim_text(claim: Claim) -> str:
+    """The claim as a sentence built from its structured fields, the same ones the checks above compare.
+
+    The model's own `text` is never checked, so a reviewer must not read it next to a green tick (audit N-04).
+    """
+    svc = claim.service or "?"
+    unit = f" {claim.unit}" if claim.unit else ""
+    value = "?" if claim.value is None else f"{claim.value:g}"
+    if claim.type == "service_ref":
+        return f"{svc} is in the blast radius"
+    if claim.type == "causal_edge":
+        return f"{claim.source or '?'} calls {claim.target or '?'}"
+    if claim.type == "latency":
+        return f"{svc} took {value}{unit}"
+    if claim.type == "status_code":
+        return f"{svc} returned status {claim.status_code if claim.status_code is not None else '?'}"
+    if claim.type == "metric_value":
+        return f"{svc + ': ' if claim.service else ''}metric value {value}{unit}"
+    return f"event at {claim.timestamp.isoformat() if claim.timestamp else '?'}"
 
 
 def _service_ref(claim: Claim, blast: set) -> Optional[str]:
