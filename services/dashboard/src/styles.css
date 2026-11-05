@@ -1,0 +1,9 @@
+body { font-family: system-ui, sans-serif; margin: 0; background: #f6f7f9; color: #1a1d21; }
+.bar { display: flex; justify-content: space-between; padding: 12px 24px; background: #fff; border-bottom: 1px solid #dde0e4; }
+.content { padding: 24px; max-width: 960px; margin: 0 auto; }
+.card { max-width: 360px; margin: 48px auto; background: #fff; padding: 24px; border-radius: 8px; border: 1px solid #dde0e4; }
+form { display: grid; gap: 12px; }
+label { display: grid; gap: 4px; font-size: 14px; }
+input { padding: 8px; font-size: 16px; }
+button { padding: 8px 12px; font-size: 14px; cursor: pointer; }
+.error { color: #b42318; margin: 0; }

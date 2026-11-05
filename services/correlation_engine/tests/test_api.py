@@ -111,3 +111,38 @@ def test_draft_endpoint_reports_a_model_failure_without_erroring() -> None:
     assert response.status_code == 200
     assert response.json()["status"] == "llm_error"
     assert response.json()["draft"] is None
+
+
+def test_draft_endpoint_sends_ranked_logs_and_metrics_to_the_model() -> None:
+    seen = {}
+
+    def spy(system: str, user: str) -> str:
+        seen["user"] = user
+        return _good_draft(system, user)
+
+    scripted = _draft_client(spy)
+    with TestClient(app) as client:
+        response = client.post("/draft", json={"incident_id": "inc-1", "service": "checkout-service", "token_budget": 3000})
+    assert response.status_code == 200
+    assert scripted.calls
+    assert "log-bn-01" in seen["user"]
+    assert "met-bn-01" in seen["user"]
+    assert "recommendation-engine" not in seen["user"]
+
+
+def test_draft_endpoint_rejects_a_budget_below_the_floor() -> None:
+    _draft_client(_good_draft)
+    with TestClient(app) as client:
+        assert client.post("/draft", json={"incident_id": "i", "service": "checkout-service", "token_budget": 10}).status_code == 422
+
+
+def test_draft_endpoint_422_when_budget_cannot_hold_the_blast_radius(monkeypatch) -> None:
+    import src.api as api
+
+    def too_small(*args, **kwargs):
+        raise ValueError("token_budget 500 is too small")
+
+    _draft_client(_good_draft)
+    monkeypatch.setattr(api, "compress", too_small)
+    with TestClient(app) as client:
+        assert client.post("/draft", json={"incident_id": "i", "service": "checkout-service"}).status_code == 422

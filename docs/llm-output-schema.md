@@ -39,7 +39,7 @@ Built by the signal compressor from the blast radius. All IDs are stable strings
 
 `evidence.kind` is `span`, `log` or `metric`. Logs carry `timestamp` and `message`; metrics carry `name`, `value` and `timestamp`. The compressor keeps the total under the token budget; the validator receives the same object, so it checks against exactly what the model saw.
 
-The pipeline builds this object without the signal compressor for now: one slowest span per service in the blast radius plus the trace edges between them, with no logs or metrics. The compressor replaces that step later; the shape does not change.
+The compressor (`services/correlation_engine/src/compressor`) builds this object. Each span, log and metric inside the blast radius is scored: `rank = 0.7 * anomaly + 0.3 * proximity`. Anomaly comes from error status (5xx 1.0, 4xx 0.6) and relative latency for spans, the level or error keywords for logs, and the value over a `baseline` for metrics (0.5 when there is none). Proximity is `1 / (1 + hops)` from the alerting service, reading call edges both ways. Evidence is added best-first until the budget is used; ids are copied unchanged. The budget is estimated tokens (characters / 4, measured on the same JSON the prompt sends) and defaults to 3000, set per call with `token_budget` on `POST /draft`. Blast radius, alert and trace edges are always kept; a budget too small for them returns 422. Logs and metrics come from the request, or from the mock fixtures when omitted.
 
 Blast radius size: the alert webhook asks the engine for `both` directions, so an alert on `checkout-service` covers five services in the mock graph (callers like `frontend-proxy` and callees down to `bank-network`). The proposal's walkthrough lists three services; it is a simplified illustration and the mock graph, the benchmark's ground truth and the chaos scenarios all use the fuller six-service topology.
 
@@ -137,6 +137,10 @@ Extra rules that apply to the whole draft:
 2. Consecutive services in `cascade_path` must be connected by a `trace_edges` entry.
 3. Every `postmortem.timeline[].claim_ids` entry must refer to a claim in `claims`, and that claim must be `supported` for the timeline row to show without a warning. A row with no `claim_ids` also gets the warning, and a claim with no `evidence_ids` is unsupported. The model API ignores `minItems`, so these are flagged instead of rejecting the whole draft.
 4. Any service name in free text that is not in `blast_radius` is flagged (simple string match against the known service list).
+
+### Claim text shown to reviewers
+
+The validator never checks the model-written `text`. It builds a `rendered_text` for each claim from the fields it did check (service, value, status code, edge, timestamp), and the draft returned by the pipeline has `text` replaced by that rendered sentence. A green tick therefore always refers to the sentence the reviewer reads.
 
 ## Worked example
 
