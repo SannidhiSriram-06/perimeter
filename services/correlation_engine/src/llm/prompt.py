@@ -14,6 +14,7 @@ Rules:
 - Copy numbers, status codes and timestamps from the evidence; do not round or estimate them.
 - Every field in the schema must be present. A field that does not apply to a claim type (for example `status_code` on a `causal_edge`) must be null.
 - Set `incident_id` to the context's `incident_id`.
+- Every timeline `time` must be an ISO 8601 timestamp string, never null. If a row has no exact time, use the alert's `fired_at`.
 - Keep timeline events short and attach the claims that support them in `claim_ids`."""
 
 

@@ -150,3 +150,30 @@ def test_span_status_buckets(graph) -> None:
         {"span_id": "none", "service_name": "bank-network"},
     ]
     assert ids(run(graph, spans=spans, logs=[], metrics=[]))[:3] == ["c5", "c4", "ok"]
+
+
+# --- live alerts: mock logs and metrics are re-timed to the alert (found in the end-to-end run) ----------------
+
+
+def test_mock_logs_and_metrics_are_rebased_to_the_alert_time() -> None:
+    logs = get_sample_logs("2026-11-05T18:30:00Z")
+    metrics = get_sample_metrics("2026-11-05T18:30:00Z")
+    assert {x["id"] for x in logs} == {x["id"] for x in get_sample_logs()}
+    bn = next(x for x in logs if x["id"] == "log-bn-01")
+    assert bn["timestamp"] == "2026-11-05T18:30:02Z"  # 2 s after the alert, as in the fixture
+    assert all(m["timestamp"] == "2026-11-05T18:30:00Z" for m in metrics)
+
+
+def test_rebase_accepts_offsets_and_ignores_bad_input() -> None:
+    assert get_sample_logs("2026-10-12T18:00:00+02:00") == get_sample_logs()
+    assert get_sample_logs("not a time") == get_sample_logs()
+    assert get_sample_logs("2026-10-12T16:00:00") == get_sample_logs()
+    assert get_sample_logs(None)[0]["timestamp"] == "2026-10-12T16:00:02Z"
+
+
+def test_rebased_timestamps_fall_inside_the_validator_window(graph) -> None:
+    fired = "2026-11-05T18:30:00Z"
+    ctx = compress("i", {**ALERT, "fired_at": fired}, graph, ["bank-network"], SPANS, get_sample_logs(fired), get_sample_metrics(fired), 3000)
+    stamps = [e["timestamp"] for e in ctx["evidence"] if "timestamp" in e]
+    assert stamps
+    assert all(t.startswith("2026-11-05T18:") for t in stamps)

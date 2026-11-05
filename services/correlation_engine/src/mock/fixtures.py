@@ -8,7 +8,8 @@ Working Command to Run:
     cd services/correlation_engine && python -m src.mock
 """
 
-from typing import Any, Dict, List
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 
 # -----------------------------------------------------------------------------
 # Synthetic Trace Graph Definitions
@@ -192,27 +193,50 @@ def get_sample_trace_spans() -> List[Dict[str, Any]]:
 FIRED_AT = "2026-10-12T16:00:00Z"
 
 
-def get_sample_logs() -> List[Dict[str, Any]]:
-    """Mock log lines for the checkout cascade. `recommendation-engine` is unrelated noise outside the blast radius."""
+def _utc(value: str) -> datetime:
+    moment = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return moment.replace(tzinfo=timezone.utc) if moment.tzinfo is None else moment
+
+
+def _rebase(items: List[Dict[str, Any]], fired_at: Optional[str]) -> List[Dict[str, Any]]:
+    """Shift every timestamp so the fixtures' alert time (FIRED_AT) lands on `fired_at`.
+
+    A live alert fires now, while the fixtures are pinned to 2026-10-12; without this the validator's incident
+    window would reject every timestamp claim. A missing or unparseable `fired_at` leaves the fixtures unchanged.
+    """
+    if fired_at is None:
+        return items
+    try:
+        delta = _utc(fired_at) - _utc(FIRED_AT)
+    except ValueError:
+        return items
     return [
+        {**item, "timestamp": (_utc(item["timestamp"]) + delta).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+        for item in items
+    ]
+
+
+def get_sample_logs(fired_at: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Mock log lines for the checkout cascade. `recommendation-engine` is unrelated noise outside the blast radius."""
+    return _rebase([
         {"id": "log-bn-01", "service": "bank-network", "level": "error", "timestamp": "2026-10-12T16:00:02Z", "message": "socket read timeout after 4000ms"},
         {"id": "log-bn-02", "service": "bank-network", "level": "info", "timestamp": "2026-10-12T15:59:50Z", "message": "connection pool 18/20 in use"},
         {"id": "log-pg-01", "service": "payment-gateway", "level": "error", "timestamp": "2026-10-12T16:00:03Z", "message": "upstream bank-network timed out, returning 500"},
         {"id": "log-co-01", "service": "checkout-service", "level": "warn", "timestamp": "2026-10-12T16:00:04Z", "message": "payment step slower than 2s"},
         {"id": "log-inv-01", "service": "inventory-service", "level": "info", "timestamp": "2026-10-12T16:00:01Z", "message": "stock lookup ok"},
         {"id": "log-rec-01", "service": "recommendation-engine", "level": "error", "timestamp": "2026-10-12T16:00:01Z", "message": "worker pool exhausted"},
-    ]
+    ], fired_at)
 
 
-def get_sample_metrics() -> List[Dict[str, Any]]:
+def get_sample_metrics(fired_at: Optional[str] = None) -> List[Dict[str, Any]]:
     """Mock metric samples. `baseline` is the normal value, used to score how abnormal the sample is."""
-    return [
+    return _rebase([
         {"id": "met-co-01", "service": "checkout-service", "name": "p95_latency_seconds", "value": 4.35, "baseline": 0.4, "timestamp": FIRED_AT},
         {"id": "met-pg-01", "service": "payment-gateway", "name": "p95_latency_seconds", "value": 4.2, "baseline": 0.3, "timestamp": FIRED_AT},
         {"id": "met-bn-01", "service": "bank-network", "name": "error_rate_percent", "value": 62.0, "baseline": 0.5, "timestamp": FIRED_AT},
         {"id": "met-inv-01", "service": "inventory-service", "name": "p95_latency_seconds", "value": 0.05, "baseline": 0.05, "timestamp": FIRED_AT},
         {"id": "met-rec-01", "service": "recommendation-engine", "name": "error_rate_percent", "value": 40.0, "baseline": 0.5, "timestamp": FIRED_AT},
-    ]
+    ], fired_at)
 
 
 def get_sample_alert_payload() -> Dict[str, Any]:
