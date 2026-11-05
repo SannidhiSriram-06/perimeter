@@ -224,3 +224,9 @@ def test_returned_claim_text_is_rendered_from_checked_fields(context, draft) -> 
     outcome, _ = run(context, json.dumps(draft))
     assert all("unverified" not in c["text"] for c in outcome.draft["claims"])
     assert [c["text"] for c in outcome.draft["claims"]] == [r.rendered_text for r in outcome.validation.claims]
+
+
+def test_prompt_forbids_null_timeline_times() -> None:
+    from src.llm import SYSTEM_PROMPT
+
+    assert "never null" in SYSTEM_PROMPT
