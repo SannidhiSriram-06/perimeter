@@ -66,8 +66,8 @@ def draft(request: DraftRequest, client: Annotated[LLMClient, Depends(llm_client
     report = graph.get_blast_radius_report(request.service, request.max_depth, request.direction)
     alert = {"alertname": request.alertname, "service": request.service, "fired_at": request.fired_at}
     # shortcut: logs and metrics fall back to the mock fixtures until the event store exists.
-    logs = request.logs if request.logs is not None else get_sample_logs()
-    metrics = request.metrics if request.metrics is not None else get_sample_metrics()
+    logs = request.logs if request.logs is not None else get_sample_logs(request.fired_at)
+    metrics = request.metrics if request.metrics is not None else get_sample_metrics(request.fired_at)
     try:
         context = compress(
             request.incident_id, alert, graph, report.impacted_services, spans, logs, metrics, request.token_budget
