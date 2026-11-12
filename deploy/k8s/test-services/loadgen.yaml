@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loadgen
+  namespace: perimeter-test
+  labels:
+    app: loadgen
+    perimeter.io/environment: controlled-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loadgen
+  template:
+    metadata:
+      labels:
+        app: loadgen
+        perimeter.io/environment: controlled-test
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+      containers:
+        - name: loadgen
+          image: perimeter/test-services:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python", "loadgen.py"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: FRONTEND_URL
+              value: http://frontend-proxy.perimeter-test.svc.cluster.local:8080/api/checkout
+            - name: INTERVAL_SECONDS
+              value: "2.0"
+          resources:
+            requests:
+              cpu: 20m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
