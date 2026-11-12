@@ -1,18 +1,21 @@
 name: CI
 
+# Trunk-based flow: every change is a pull request into main.
+#   pull_request -> unit tests, lint and image builds must pass before merge.
+#   push to main -> the same checks plus the integration job, which starts the real stack.
 on:
   push:
-    branches: [develop, main]
+    branches: [main]
   pull_request:
-    branches: [develop, main]
+    branches: [main]
 
 permissions:
   contents: read
 
-# A newer push to the same branch cancels the older run, which keeps usage low.
+# A newer push to the same pull request cancels the older run. Runs on main are never cancelled.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   correlation-engine:
@@ -82,7 +85,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: "pip install --only-binary=:all: ruff==0.17.3"
-      - run: ruff check services/correlation_engine
+      - run: ruff check services/correlation_engine services/test-services
       - run: shellcheck scripts/*.sh deploy/k8s/up.sh
       - run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color
 
@@ -94,3 +97,68 @@ jobs:
       - uses: actions/checkout@v4
       - run: docker build services/bff-server
       - run: docker build services/correlation_engine
+
+      - run: docker build services/test-services
+
+  dashboard:
+    name: Dashboard tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: services/dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: services/dashboard/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - run: npm test
+
+  test-services:
+    name: Test services tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: services/test-services
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: "pip install --only-binary=:all: -r requirements.txt pytest"
+      - run: python -m pytest tests/ -q
+
+  # Runs only after a merge to main. Builds and starts the real stack (Postgres, engine, BFF),
+  # sends an alert through the webhook and checks that an incident with a blast radius was stored.
+  integration:
+    name: Integration (full stack)
+    if: github.event_name == 'push'
+    needs: [correlation-engine, bff-server, dashboard, test-services, compose-config, lint, docker-build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start the stack and send an alert
+        run: ./scripts/demo.sh
+      - name: Check the stored incident
+        run: |
+          set -a; . ./.env; set +a
+          compose=(docker compose --env-file .env -f deploy/docker-compose.yml)
+          row="$("${compose[@]}" exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At \
+            -c "SELECT status || '|' || alert_service_id || '|' || array_length(blast_radius, 1) FROM incidents ORDER BY created_at DESC LIMIT 1")"
+          echo "latest incident: $row"
+          case "$row" in
+            open\|checkout-service\|[2-9]*) ;;
+            *) echo "unexpected incident row"; exit 1 ;;
+          esac
+      - name: Stack logs on failure
+        if: failure()
+        run: docker compose --env-file .env -f deploy/docker-compose.yml logs --no-color --tail=200
+      - name: Stop the stack
+        if: always()
+        run: docker compose --env-file .env -f deploy/docker-compose.yml down -v

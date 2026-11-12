@@ -1,27 +1,31 @@
-# Each path's owner is requested as a reviewer on PRs that touch it.
-# Ownership follows the team roles agreed in the project.
+# Each path's owner is requested as a reviewer on pull requests that touch it.
+# The last matching pattern wins, so specific paths go below general ones.
 
 # Default: Sriram reviews anything not claimed below
 *                                   @SannidhiSriram-06
-
-# Data and databases (David)
-/deploy/db/                         @DavidParantha
-/services/correlation_engine/       @DavidParantha
-
-# Backend and IAM (Jyothi)
-/services/bff-server/               @JyothiSwaroop005
-
-# Frontend and dashboards (Manmitha)
-/services/dashboard/                @Manmitha03
-
-# On-call router and bot (Vivek)
-/services/correlation_engine/src/router/  @VivekSana
-
-# Testing and evaluation (Goutham)
-/evaluation/                        @GouthammLahar
 
 # Cloud, infra, CI and AI (Sriram)
 /.github/                           @SannidhiSriram-06
 /deploy/terraform/                  @SannidhiSriram-06
 /deploy/k8s/                        @SannidhiSriram-06
 /services/correlation_engine/src/llm/ @SannidhiSriram-06
+/services/dashboard/                @SannidhiSriram-06
+
+# Data and databases (David)
+/deploy/db/                         @DavidParantha
+/docs/design/                       @DavidParantha
+
+# Backend and IAM (Jyothi)
+/services/bff-server/               @JyothiSwaroop005
+
+# On-call router and bot (Vivek)
+/services/correlation_engine/src/router/  @VivekSana
+/scripts/telegram_hello.py          @VivekSana
+/docs/router-scoring.md             @VivekSana
+/docs/telegram-bot.md               @VivekSana
+
+# Testing and evaluation (Goutham)
+/evaluation/                        @GouthammLahar
+/docs/evaluation/                   @GouthammLahar
+/services/test-services/            @GouthammLahar
+/deploy/k8s/test-services/          @GouthammLahar
