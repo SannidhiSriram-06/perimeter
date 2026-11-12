@@ -1,6 +1,6 @@
 # LLM output contract and validator claim types
 
-This page defines what goes into the single LLM call and what must come back. It is the contract between the signal compressor (input), the LLM step, and the fact-checking validator (output check). Nothing here is built yet.
+This page defines what goes into the single LLM call and what must come back. It is the contract between the signal compressor (input), the LLM step, and the fact-checking validator (output check). All three are built (see `services/correlation_engine/src/compressor`, `src/llm`).
 
 ## Rules for the call
 

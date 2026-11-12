@@ -2,6 +2,8 @@
 
 React + Vite + TypeScript shell. Everyone's views plug into this app (Sriram owns the shell).
 
+**Status:** login, session handling, role-guarded routes and the typed API client are built and tested (8 tests). `AdminHome` and `TeamHome` are placeholders; the incident list, blast-radius view, claims with evidence, leave management and directory screens are not built yet. The BFF has no edit-and-finalize endpoint yet. Screens are specified in [docs/wireframes](../../docs/wireframes/README.md).
+
 ## Run
 
 ```bash

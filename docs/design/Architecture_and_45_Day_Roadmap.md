@@ -1,5 +1,7 @@
 # Project Perimeter: Technical Architecture & 45-Day Engineering Roadmap
 
+> **Status, 8 November 2026 (week 8).** This file is the original design and plan. What is actually built and tested is in [README.md](../../README.md) (status table), [docs/progress-report.md](../progress-report.md) and [docs/audit-report.md](../audit-report.md). In short: the blast-radius graph, compressor, LLM draft, validator, IAM, Team Directory, incidents API, chaos harness and scorer, Docker stack, Minikube observability and CI are built and run on **mock telemetry**; the dashboard is a login shell; the on-call router, Telegram bot, event store, live chaos run and cloud deployment are not started. Where this plan says "Day N", the team is behind the original 45-day schedule on those items.
+
 ## Overview
 Perimeter is a self-hosted, data-sovereign Kubernetes incident correlation and smart paging engine designed to replace expensive, SaaS-only incident AI tools (e.g., PagerDuty Advance, Datadog Watchdog) for compliance-bound environments (BFSI, government, healthcare).
 
@@ -133,50 +135,55 @@ gantt
 
 ---
 
-## Repository Layout (Target)
+## Repository Layout
+
+Marked `(planned)` where the directory does not exist yet.
 
 ```
 Perimeter/
-├── project_architecture_and_roadmap.md  # Master architectural roadmap & timeline
+├── docs/design/Architecture_and_45_Day_Roadmap.md  # This file: design and timeline
 ├── services/
-│   ├── correlation_engine/              # Python: BFS Graph, Signal Compressor, LLM Integration
+│   ├── correlation_engine/              # Python (FastAPI)
 │   │   ├── src/
 │   │   │   ├── graph/                   # OTel trace BFS traversal
 │   │   │   ├── compressor/              # Signal ranking & token budgeting
-│   │   │   ├── llm/                     # Prompt templates & fact-checking validator
-│   │   │   └── router/                  # On-call matching logic
+│   │   │   ├── llm/                     # Prompt, Groq client, schema, fact-checking validator
+│   │   │   ├── mock/                    # Mock spans, logs, metrics
+│   │   │   ├── router/                  # On-call matching logic (planned)
+│   │   │   └── api.py                   # /correlate, /draft, /health
 │   │   ├── tests/
 │   │   ├── Dockerfile
-│   │   └── pyproject.toml / requirements.txt
-│   ├── bff-server/                      # Node.js: API Gateway, IAM validation, Webhook receiver
-│   │   ├── src/
-│   │   │   ├── auth/                    # 5-digit / 6-digit authorization
-│   │   │   ├── incidents/               # Incident state management
-│   │   │   └── bot/                     # Telegram Bot API integration
-│   │   └── package.json
-│   └── dashboard/                       # React (Vite) + Tailwind UI
-│       ├── src/
-│       │   ├── components/              # Blast-radius graph visualizer, Incident editor
-│       │   ├── views/                   # Admin view (5-digit) vs Team view (6-digit)
-│       │   └── ...
+│   │   └── requirements*.txt
+│   ├── bff-server/                      # Node.js: API gateway, IAM, webhook receiver
+│   │   └── src/
+│   │       ├── auth/                    # login, tokens, role lookup
+│   │       ├── alerts/                  # webhook, correlation + draft calls
+│   │       ├── incidents/               # team-scoped incident list
+│   │       ├── teams/                   # Team Directory API
+│   │       └── bot/                     # Telegram Bot API integration (planned)
+│   └── dashboard/                       # React (Vite): login, role guards, placeholder pages
+│       └── src/                         # components/ and real views (planned)
 ├── evaluation/
 │   ├── chaos/                           # Chaos Mesh experiment definitions
-│   └── benchmark/                       # Automated accuracy scoring harness
+│   ├── benchmark/                       # Ground truth and accuracy scorer
+│   └── run_chaos.py                     # Chaos execution harness (dry-run works offline)
 ├── deploy/
-│   ├── docker-compose.yml               # Local offline dev environment
-│   ├── k8s/                             # Helm charts & manifests
-│   └── terraform/                       # Infrastructure as Code
-└── docs/                                # Diagrams, schemas, and capstone documentation
+│   ├── docker-compose.yml               # Local stack: Postgres, engine, BFF
+│   ├── db/init.sql                      # Schema and dev seed
+│   ├── k8s/                             # Minikube bootstrap (Helm values, up.sh)
+│   └── terraform/                       # Infrastructure as Code (planned)
+└── docs/                                # Audit, progress report, schemas, wireframes
 ```
 
 ---
 
 ## Quality Assurance & Verification Strategy
 
-### Planned Automated Testing
-- `pytest services/correlation_engine/tests/`: Verify BFS graph traversal bounds, cycle handling, compression token limits, and validator rejection of hallucinated entities.
-- `npm test --prefix services/bff-server`: Verify IAM role security (role enforcement and constant error messaging).
-- `python evaluation/benchmark/run_benchmark.py`: Execute evaluation suite against injected chaos experiments.
+### Automated Testing (all exist today)
+- `pytest services/correlation_engine/tests/` (177 tests): BFS bounds and cycles, compression token limits, validator rejection of unsupported claims, the chaos harness.
+- `npm test` in `services/bff-server` (45 tests, needs Postgres): IAM role security, constant error messaging, team-scoped incidents, webhook.
+- `npm test` in `services/dashboard` (8 tests): login and role guards.
+- `python evaluation/run_chaos.py --scenario all --dry-run`: scores the four chaos scenarios offline. Live runs need a cluster with the test services, which are not deployed yet.
 
 ### End-to-End Validation Workflow
 1. Run local environment via `docker-compose up`.

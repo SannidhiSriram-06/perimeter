@@ -1,0 +1,329 @@
+PERIMETER - TEAM ROLES, RESPONSIBILITIES AND TASKS
+Updated 11 Nov 2026 (develop @ e2e34d7). One file for everything: roles, status, and the exact prompts your AI agent follows.
+
+
+==============================================================================
+HOW TO USE THIS FILE (for the humans)
+==============================================================================
+
+1. Open your AI coding agent (Claude Code, Cursor, Copilot agent, Codex, anything that can run shell commands) in the folder where the Perimeter repo lives. If you do not have the repo yet, open it in an empty folder and the agent will clone it.
+2. Give the agent this file (attach it, or tell it to read docs/team/Team_Roles_and_AI_Agent_Prompts.txt).
+3. Type exactly one line: "My name is <your name>. Follow docs/team/Team_Roles_and_AI_Agent_Prompts.txt."
+4. Watch it work. It will sync your repo with GitHub, then do your Task 1 and your Task 2 (exactly two tasks, one pull request each), and give you the PR links.
+   DEADLINE: both pull requests open, green and ready for review by the end of Thursday 12 Nov 2026, so Sriram can review and merge the same day. Start now.
+5. Post the PR links in the group chat as soon as each is open. Sriram reviews. If he asks for changes, tell your agent: "Read the review comments on my open pull request, fix each one on the same branch, rerun tests and lint, push, and tell me what you changed."
+
+You need: git, a GitHub login on your machine (gh auth login, or git credentials that can push), and whatever your tasks need (Docker, Node 20+, Python 3.11+). The agent will tell you if something is missing. Some steps need you personally (for example creating a Telegram bot); the agent will stop and walk you through it.
+
+
+==============================================================================
+INSTRUCTIONS FOR THE AI AGENT (read this whole section before doing anything)
+==============================================================================
+
+You are helping one team member of the Perimeter capstone project. The person tells you their name. Everything you do is for that person only.
+
+STEP 0 - IDENTIFY THE PERSON
+- Match the name to one of: Sriram (GitHub SannidhiSriram-06), David (DavidParantha), Jyothi (JyothiSwaroop005), Vivek (VivekSana), Goutham (GouthammLahar). Case and spelling may differ. If the name does not match one of these, or matches nobody, stop and ask. Manmitha has left the project; do nothing for her.
+- Find that person's section under "TASKS BY PERSON" below. Do ONLY their tasks. Never do another person's task, even if asked in passing; tell the person to ask that teammate.
+- Read these in the repo before you start, so you understand the project: README.md, docs/audit-report.md, docs/progress-report.md, CONTRIBUTING.md, and the "PROJECT IN BRIEF" and "SHARED CONTRACTS" sections of this file.
+
+STEP 1 - SYNC WITH GITHUB (always first; never skip)
+1. Run `git remote -v` and `git status`. Report the remotes and whether there is uncommitted or unpushed work. If there is, STOP and ask what to do with it. Never discard, reset or stash the person's changes without asking.
+2. The main repo is SannidhiSriram-06/perimeter. If it is `origin`, fine. If the person works from a fork, `origin` is the fork and the main repo must be a remote named `upstream`; add it if missing.
+3. `git fetch --all --prune`.
+4. `git switch develop`, then fast-forward it to the main repo's develop (`git pull --ff-only`, or `git merge --ff-only upstream/develop`). If it cannot fast-forward, STOP and explain; do not force anything.
+5. If the person is on a feature branch with work in progress, say so and offer to rebase it onto develop. Do not start a task on top of it.
+6. Check a local `.env` exists (`cp .env.example .env` if not, then replace the change_me values with random ones; for POSTGRES_PASSWORD also update DATABASE_URL). Never print secret values and never commit `.env`. Run `chmod 600 .env`.
+7. Finish by showing `git log --oneline -5` and `git status`, and confirm local develop equals the main repo's develop. Push nothing in this step.
+
+STEP 2 - DO THE TASKS, ONE AT A TIME, EACH ITS OWN PR
+Every person has exactly two tasks, and the deadline for both is the end of Thursday 12 Nov 2026. Do Task 1, then Task 2. Each task is one branch and one PR.
+TIME BOX: open a DRAFT pull request (`gh pr create --draft`) as soon as the first working piece is pushed, then keep pushing. If you run short of time, do not miss the deadline: finish what works, mark the PR ready, and list plainly in the PR what is not done. A smaller PR that passes its checks beats a bigger one that does not. If a task is clearly too big, build the core of it first, in the order the task lists its steps.
+1. Branch from the freshly synced develop with the branch name given in the task. Never commit to develop or main.
+2. Read the files the task names. Build exactly what the task asks, nothing more. Only touch files in the task's area; if something outside needs changing, list it in the PR description instead.
+3. Write tests with the change. Run the checks listed in the task. Everything must pass before you commit. If something fails, fix it; if you cannot, say so plainly in your report and in the PR, do not hide it.
+4. Commit with the form `type(scope): summary` (feat, fix, docs, test, chore), push the branch, and open a pull request into `develop` of SannidhiSriram-06/perimeter (`gh pr create --base develop`; if gh is not available, give the person the exact URL and text to paste). The PR description says what changed, how it was tested (with the real command output summary), and anything left undone.
+5. Return to develop (`git switch develop`) and, for the next task, run Step 1.4 again so the second task starts from the latest develop. Task 2 never stacks on Task 1's branch unless the task says so.
+6. No task waits for another person's PR. Where a task uses a contract from SHARED CONTRACTS that is not on develop yet, build against the contract (with a mocked client or stub in tests) and say so in the PR.
+
+STEP 3 - REPORT
+Finish with a short report: for each task, the PR link, what you tested (commands and results), and anything blocked or unfinished. Do not claim a task is done if its "Done when" is not met.
+
+RULES THAT ALWAYS APPLY
+- Secrets: never commit, print or log tokens, passwords, API keys or the .env file. Check `git status` and `git diff --cached` for them before every commit.
+- Do not merge any pull request. Sriram merges (the lead merges his own PRs once required checks pass).
+- Do not change CI workflows, infra, or other people's modules unless your task says so.
+- Never run destructive commands (git reset --hard, git push --force, docker compose down -v, rm -rf outside your own new files) without asking the person first. `./scripts/demo.sh` and docker compose reuse the person's existing local database; do not wipe it.
+- If a task's instructions conflict with what you see in the repo, stop and ask rather than guess.
+- Report outcomes honestly. A failing test is reported as failing.
+
+
+==============================================================================
+PROJECT IN BRIEF (what Perimeter is)
+==============================================================================
+
+Perimeter is a self-hosted incident-triage tool for Kubernetes microservices. When an alert fires it (1) follows the real call graph from OpenTelemetry trace edges outward from the failing service to find the blast radius (plain breadth-first search, so unrelated noisy services are excluded), (2) ranks and trims the logs, metrics and traces of that blast radius to fit a model's token budget, (3) makes one Groq model call at temperature 0 that must answer in a strict JSON schema, (4) checks every claim in that answer against the evidence it cites (the fact-checking validator), (5) lets a human review, edit and finalize the draft in a role-gated dashboard, and (6) pages the best-fit 1-2 responders on Telegram based on skill, seniority and availability. It runs inside the organisation's own cluster, so raw telemetry never leaves it; only a small summary goes to the model provider. It is evaluated by injecting known faults with Chaos Mesh and scoring the output against the injected ground truth. The proposal's target: under 90 seconds from alert to a reviewed draft (not measured yet). Accuracy claims are for a controlled test environment, never production.
+
+Access model: 5-digit ID = Admin (sees everything, manages the Team Directory and leave); 6-digit ID = Team member (sees only incidents on services their team owns). The ID length is only a hint; the server checks the role in the database on every request.
+
+Stack: Python (FastAPI) correlation engine; Node.js/Express/TypeScript BFF with PostgreSQL; React + Vite + TypeScript dashboard; Docker Compose locally; Minikube then EKS; GitHub Actions CI.
+
+
+==============================================================================
+CURRENT STATE (11 Nov 2026)
+==============================================================================
+
+Verified 8 Nov: engine 177 tests, BFF 45 tests (real Postgres), dashboard 8 tests, all passing; engine coverage 99%; ./scripts/demo.sh passes. About 40% of the proposal is built, all on MOCK telemetry (no trace store, no event store yet). Full detail: docs/audit-report.md and docs/progress-report.md.
+
+BUILT
+- Graph, BFS blast radius (upstream/downstream/both), mock spans/logs/metrics/alerts, engine API (/correlate, /draft, /health)
+- Signal compressor, prompt, Groq client, JSON schema, fact-checking validator, draft wired into the webhook
+- BFF: webhook (bearer secret), password login (scrypt), Team Directory API, team-scoped GET /incidents, rate limits
+- PostgreSQL schema and seed, Docker images and Compose stack, demo script
+- Minikube observability (Prometheus, Alertmanager, Grafana, OTel Collector)
+- CI with coverage gate, lint and security scans
+- Chaos scenarios, ground truth, benchmark scorer, execution harness (dry-run only), dashboard wireframes (SVG)
+- MongoDB event store DESIGN
+- React dashboard shell: login, role-guarded routes, placeholder Admin and Team pages
+
+NOT BUILT
+- Event store implementation and fetcher; real trace/log/metric source
+- Dashboard screens (incident list/detail, edit-and-finalize, team view, leave and directory, evaluation results)
+- BFF endpoint to edit/finalize a draft; alert de-duplication and resolve handling
+- On-call router and Telegram bot
+- BFF and engine deployed in Minikube; instrumented test services; live chaos run and a measured accuracy number
+- Terraform, ArgoCD, Vault, ECR, RDS/DynamoDB move
+
+KNOWN DEFECTS TO KEEP IN MIND (docs/audit-report.md): duplicate incidents on alert re-delivery (N-01), unknown service stored as empty open incident (N-09), no migrations (N-13), free-tier Groq rate limit loses drafts on bursts (N-27).
+
+
+==============================================================================
+WHO DID WHAT SO FAR (from git history and merged PRs, 17 Sep - 6 Nov)
+==============================================================================
+
+SRIRAM (lead) - 43 merged PRs (many are release merges), 25 own commits. Architecture and roadmap, licence, security policy; BFS engine and its API; CI and security scans; Docker stack; IAM login and Team Directory API; rate limiting; Minikube observability; LLM contract, validator, prompt/Groq client, draft wired into alerts; signal compressor; dashboard shell (both of last week's tasks delivered); audit fixes N-02, N-04, N-05.
+GOUTHAM - 4 PRs. BFF scaffold (first webhook); chaos scenarios, ground-truth schema and benchmark scorer (#46); dashboard wireframes (#55); chaos execution harness (#56). Both of last week's tasks delivered.
+DAVID - 2 PRs. PostgreSQL schema and seed (#6); MongoDB event store design (#47). Last week's tasks (build the event store, event fetcher) were NOT delivered; they carry over below.
+JYOTHI - 2 PRs. Local Docker setup and backend lockfile (#10); incident dashboard API changes (#45, the GET /incidents endpoint). Last week's tasks (edit/finalize endpoint, Team dashboard) were NOT delivered; they carry over below.
+VIVEK - 1 PR. Mock OpenTelemetry trace generator and alert fixtures (#9), which drive the whole pipeline. Last week's tasks (router spec, Telegram hello script) were NOT delivered; the router spec carries over below, and the Telegram script moves to "Next work" so every person has exactly two tasks this round.
+MANMITHA - 1 PR (initial graph scaffold, superseded). Left the project; her work is split below.
+
+Note: if a carried-over task already exists in a teammate's open pull request, tell Sriram before duplicating it.
+
+
+==============================================================================
+TEAM AND ROLES
+==============================================================================
+
+Five active members. Each owns one module end to end, plus one slice of Manmitha's dashboard work. This round has one hard deadline: both tasks open and ready for review by the end of Thursday 12 Nov 2026. After that the timeline goes back to milestones. Pairs review each other's PRs.
+
+1. SRIRAM - Lead, Cloud and AI
+   Owns: Kubernetes (Minikube, later EKS), Helm, ArgoCD, Terraform, Vault, GitHub Actions pipeline; LLM integration (prompt, JSON-schema output, validator); the signal compressor; final integration and demo.
+   Also: reviews every PR touching infra, CI, AI or IAM; keeps the architecture docs current; runs cluster spin-up and teardown to keep cost low; owns the dashboard shell.
+   Standing follow-ups after the two tasks: a draft queue that spaces Groq calls and retries on rate-limit errors (N-27); tally why drafts get flagged (N-29); Vault, Terraform, ArgoCD.
+
+2. DAVID - Data and Databases
+   Owns: relational schema and migrations; the raw event store (local MongoDB now, DynamoDB before the demo); the event fetcher for the compressor; seed and fixture data; data retention (raw events never leave the cluster).
+   Does not own infra or LLM code; if his work needs changes there, he lists them in the PR description.
+   Standing follow-ups: a migration runner and numbered migrations (N-13), alert de-duplication and resolve handling (N-01) with the schema change, JSONB for the draft column (N-30).
+
+3. JYOTHI - Backend and IAM
+   Owns: the IAM service (5-digit admin, 6-digit team member), server-side role lookup on every request, generic invalid-credentials errors, team-scoped data access, the BFF API the dashboards call.
+   Standing follow-ups: authorize from one team-membership source (N-11), security headers and generic parse errors (N-17), token revocation (N-25), a BFF lint and coverage gate (N-24).
+
+4. VIVEK - On-Call Router and Bot
+   Owns: the router scoring (match affected services to owning teams, rank by skill, seniority and availability), the mixed-seniority pairing rule, the Telegram bot that pings the top 1-2 responders, and the Team Directory data model in the app layer (with David).
+   Standing follow-ups: call the router and bot from the alert flow; respect leave and on-call status end to end.
+
+5. GOUTHAM - Testing and Evaluation
+   Owns: the chaos harness (Chaos Mesh), ground-truth records, the accuracy benchmark (blast-radius precision/recall, LLM postmortem scoring), the instrumented test microservices, and the evaluation write-up and documentation.
+   Standing follow-ups: the live chaos run once the test services and Sriram's Minikube deployment exist; measure alert-to-draft time against the 90-second target.
+
+MANMITHA'S WORK, SPLIT EQUALLY (one dashboard slice each, all inside services/dashboard)
+- Admin incident list and incident detail (blast radius, drafted hypothesis, claims with evidence, flagged drafts): DAVID  (Task 2)
+- Edit-and-finalize panel for the drafted hypothesis: SRIRAM  (Task 2)
+- Team dashboard (services and incidents the team owns): JYOTHI  (Task 2)
+- Admin leave marking and Team Directory screens: VIVEK  (Task 2)
+- Evaluation results screen (benchmark and chaos numbers): GOUTHAM  (Task 2)
+
+Pairs for review: Sriram with David and Goutham; Jyothi with Vivek. Every PR gets one review from its pair. PRs touching infra, CI, AI or IAM also get Sriram.
+
+
+==============================================================================
+SHARED CONTRACTS (so parallel work fits together; do not deviate)
+==============================================================================
+
+Dashboard conventions (services/dashboard; read its README.md first)
+- Each slice lives in its own files: a page under src/pages/<area>/ and API helpers in src/api/<area>.ts. Do not edit other people's pages.
+- The only shared file everyone touches is src/App.tsx: add your <Route> (and import) inside the matching RequireRole group, as a small separate commit. Resolve conflicts by keeping all routes.
+- Admin routes go under /admin/..., team routes under /team/.... Use the typed api<T>() client. Render only what the API returns; the server enforces authorization.
+- Show loading, empty and error states. A 401 sends the user to login. Never show whether a login ID exists.
+- Tests: vitest + testing-library like the existing ones. `npm test` and `npm run build` must pass.
+
+Existing API you can rely on (all need Authorization: Bearer <token> except login)
+- POST /api/v1/auth/login {id, password} -> {token, role}. Dev users: 10001 (admin), 100101/100102 (payments), 100103 (core-platform); password perimeter-dev.
+- GET /api/v1/teams; GET /api/v1/teams/:teamId/members; GET /api/v1/members/:userId; PATCH /api/v1/members/:userId/status (admin) with is_on_leave, on_call_status, seniority, skills (+ team_id when ambiguous).
+- GET /api/v1/incidents -> {incidents: [{id, title, status, alert_service_id, blast_radius, root_cause_draft, created_at, service_name, owning_team_id}]}. root_cause_draft is JSON TEXT: {"status": "ok"|"flagged", "draft": {...per docs/llm-output-schema.md}, "validation": {"claims": [{"id","supported","reasons","rendered_text"}], "issues": [{"rule","message"}], "timeline_warnings": [row indexes]}} or null when no draft exists.
+
+NEW API 1 - edit and finalize (built by JYOTHI Task 1, used by SRIRAM Task 2)
+  PATCH /api/v1/incidents/:id/draft
+  Body (at least one key): {"hypothesis": {"summary"?: string<=500, "root_cause_service"?: string, "cascade_path"?: string[] (>=1), "confidence"?: "low"|"medium"|"high"}, "postmortem": {"summary"?: <=800, "impact"?: <=500, "contributing_factors"?: string[] (each <=300), "next_steps"?: string[] (each <=300)}, "finalize"?: boolean}
+  Unknown keys or wrong types -> 400. Unknown incident, or an incident the caller may not see -> 404 for unknown / 403 for another team's. Admin may always edit; a team member only for incidents on services their team owns; once final, only an admin may edit (a team member gets 409).
+  Success 200: {"incident": {id, title, status, alert_service_id, blast_radius, root_cause_draft, reviewed_draft, reviewed_by, reviewed_at, finalized_at, created_at, service_name, owning_team_id}}. The original model draft in root_cause_draft is never modified; edits go in reviewed_draft (JSON object with the edited hypothesis/postmortem fields merged over the draft). finalize=true sets status 'final' and finalized_at. GET /incidents returns the same new fields.
+
+NEW API 2 - services (built by JYOTHI Task 2, used by her Team dashboard)
+  GET /api/v1/services -> {services: [{id, name, owning_team_id, tier}]}. Admin: all services. Team member: only services their team owns.
+
+NEW API 3 - evaluation results (built by GOUTHAM Task 2, used by his results screen)
+  GET /api/v1/evaluation/results (admin only; team members get 403) -> {"runs": [{"source": file name, "run_at": ISO string, "environment": string, "dry_run": boolean|null, "notice": string, "total": number, "passed": number, "pass_rate": number, "results": [raw per-scenario objects from the file]}]}. Reads benchmark_results.json and chaos_run_*summary.json from the directory in the env var EVALUATION_RESULTS_DIR (default: evaluation/benchmark/results in the repo). A file that is missing or unparsable is skipped, not a 500.
+
+
+==============================================================================
+TASKS BY PERSON
+==============================================================================
+
+Standard checks (use the ones that apply to what you changed):
+  Engine:    cd services/correlation_engine && pip install -r requirements-dev.txt && python3 -m pytest tests/ -q --cov=src --cov-fail-under=85 ; ruff check .
+  BFF:       start Postgres (docker compose --env-file .env -f deploy/docker-compose.yml up -d postgres), then cd services/bff-server && npm ci && TEST_DATABASE_URL=postgres://perimeter:<POSTGRES_PASSWORD from .env>@localhost:5432/perimeter_db npm test   (this runs tsc and all tests, 45 today)
+  Dashboard: cd services/dashboard && npm ci && npm test && npm run build
+  Evaluation: python3 -m pytest evaluation/tests -q   (also runs via the engine suite)
+
+------------------------------------------------------------------------------
+SRIRAM - Lead, Cloud and AI
+------------------------------------------------------------------------------
+TASK 1 (branch feat/helm-minikube): Run Perimeter inside Minikube.
+  Why: Alertmanager is configured to post to the BFF, but the BFF is not deployed in the cluster, so deliveries fail and retry. The proposal's pipeline must run in Kubernetes.
+  Read: deploy/k8s/README.md, deploy/k8s/up.sh, deploy/k8s/values/*, deploy/docker-compose.yml, services/*/Dockerfile, .env.example.
+  Do:
+  1. Create a Helm chart at deploy/helm/perimeter that deploys the BFF, the correlation engine and a dev PostgreSQL (loaded from deploy/db/init.sql through a ConfigMap) into the `perimeter` namespace. Services named so Alertmanager reaches `perimeter-bff.perimeter.svc.cluster.local:3001` (match deploy/k8s/values/prometheus-values.yaml). Secrets (DB password, AUTH_SECRET, WEBHOOK_SECRET, GROQ_API_KEY) come from a Kubernetes Secret that up.sh creates with random values on first run; the webhook secret must be the same one Alertmanager sends (secret `perimeter-webhook`). No secret in git. Probes on /health, non-root, resource requests/limits, TRUST_PROXY and CORS_ORIGIN as values.
+  2. Extend deploy/k8s/up.sh (stay idempotent; shellcheck-clean) to build the two images into Minikube (`minikube image build` or `eval $(minikube docker-env)`), install the chart, and wait for readiness. Pin the Helm chart versions and the collector image tag in up.sh (audit N-20).
+  3. Document in deploy/k8s/README.md how to run it and how to fire a test alert at Alertmanager so it reaches the BFF.
+  Done when: after ./deploy/k8s/up.sh all pods are Ready; a test alert sent to Alertmanager creates a row in the incidents table (show the output); `helm lint deploy/helm/perimeter` passes; the docs say exactly what was and was not verified.
+  Checks: helm lint, shellcheck deploy/k8s/up.sh, and the existing CI-equivalent tests still pass. If Minikube is not available on this machine, build and lint everything, say clearly that it was not run on a cluster, and list the exact manual verification steps.
+
+TASK 2 (branch feat/dashboard-edit-finalize; Manmitha slice): Edit-and-finalize panel.
+  Builds against the NEW API 1 contract (Jyothi's endpoint may not be merged yet): use a mocked client in tests and say so in the PR.
+  Read: services/dashboard/README.md, docs/llm-output-schema.md, docs/wireframes/README.md and admin-incident-view.svg, the NEW API 1 contract above.
+  Do:
+  1. Build src/pages/admin/EditDraftPanel.tsx: a self-contained component that takes an incident (with root_cause_draft and reviewed_draft) and lets an admin edit hypothesis.summary, root_cause_service, cascade_path, confidence and the postmortem summary/impact/contributing factors/next steps, with validation matching the contract limits, a Save button (PATCH, finalize false) and a "Mark final" button (PATCH, finalize true) behind a confirm step. Show who last edited it and when, and disable editing for a final incident (admin may still reopen via save).
+  2. Until David's Admin incident detail page is merged, mount it on its own route /admin/incidents/:id/review (fetch the incident from GET /incidents and pick by id). Once David's page exists, add a "Review" link to it.
+  3. Show the validator's flagged claims next to the fields so the reviewer sees what to double check.
+  4. Tests: save sends only changed fields, finalize needs confirmation, errors (400/403/409) show a clear message, a final incident is read-only. npm test and npm run build pass.
+  Done when: an admin can open an incident, edit the hypothesis, save and mark it final through the UI against the real BFF (state in the PR what you ran).
+
+------------------------------------------------------------------------------
+DAVID - Data and Databases
+------------------------------------------------------------------------------
+TASK 1 (branch feat/event-store): MongoDB event store and fetcher.
+  Read: docs/design/Event_Store_Design.md (your design), deploy/docker-compose.yml, deploy/db/init.sql, services/correlation_engine/src/api.py (see the "shortcut" comments: spans, logs and metrics fall back to mock fixtures), src/mock/fixtures.py, src/compressor. Raw events must never leave the cluster; the store runs locally now and moves to DynamoDB before the demo, so keep access behind a small interface (Python Protocol/abstract class) so only one file changes later.
+  Do:
+  1. Add a mongo service to deploy/docker-compose.yml: pinned image tag, bound to 127.0.0.1, named volume, healthcheck, credentials from .env variables with NO default password. Add placeholders to .env.example. (You are allowed to edit these two files for this task.)
+  2. An init script that creates the `events` collection and the indexes from the design doc and is safe to run twice.
+  3. In services/correlation_engine/src/store/: the interface; a MongoDB implementation (pymongo, add to requirements and the hash-pinned requirements.lock the same way the others are, or explain in the PR if you cannot regenerate the lock); an in-memory implementation for tests; a loader that writes the mock spans, logs and metrics into the store linked to an incident id; and fetch_events(services, window_minutes=15) returning logs, metrics and spans for those services in the window.
+  4. Make /correlate and /draft read spans (and /draft logs and metrics) from the store when it is configured by an env var, and keep the mock fixtures as the fallback so existing tests still pass. Also make the fallback explicit: log a warning when mock data is used.
+  5. Tests for the loader, the fetcher (window boundaries, unknown services, empty result) and the interface. Unit tests must not need a real database. Coverage stays above 85%, ruff clean.
+  6. Update docs/design/Event_Store_Design.md with anything that changed, and add run instructions to deploy/README.md.
+  Done when: with the Compose stack up, the loader fills Mongo, and /draft for checkout-service builds its context from Mongo (show the evidence ids came from the store); all tests pass without Mongo.
+
+TASK 2 (branch feat/admin-incidents-page; Manmitha slice): Admin incident list and detail.
+  Read: services/dashboard/README.md, docs/wireframes/README.md and admin-incident-view.svg, empty-state-view.svg, docs/llm-output-schema.md, the incidents API in SHARED CONTRACTS.
+  Do:
+  1. src/pages/admin/IncidentsPage.tsx: table of incidents from GET /api/v1/incidents (title, status, alert service, owning team, created time, draft badge: ok / flagged / none). Select a row to open the detail at /admin/incidents/:id.
+  2. src/pages/admin/IncidentDetail.tsx: blast radius as a list or small graph, the drafted hypothesis (summary, root cause, cascade path, confidence), the claims table with a supported or unsupported mark and the cited evidence ids, flagged-draft banner with the reasons, the postmortem sections, and the empty state when there is no draft. Show claim text from validation.claims[].rendered_text (never the model's raw text). Leave a clearly named `actions` slot (a prop or children) for Sriram's edit panel.
+  3. Replace the placeholder AdminHome content with a link to Incidents (small change).
+  4. Tests for list rendering, selection, flagged banner, no-draft state, error state. npm test and npm run build pass.
+  Done when: logged in as 10001 against the real BFF with a stored incident, the list and detail render the real data (state what you ran).
+
+------------------------------------------------------------------------------
+JYOTHI - Backend and IAM
+------------------------------------------------------------------------------
+TASK 1 (branch feat/bff-finalize-draft): Edit and finalize endpoint.
+  Read: services/bff-server/README.md, src/incidents/routes.ts, src/auth/*, src/__tests__/api.test.ts and incidents.test.ts, deploy/db/init.sql, NEW API 1 in SHARED CONTRACTS.
+  Do:
+  1. Implement PATCH /api/v1/incidents/:id/draft exactly as the contract says. Validate the body strictly (unknown keys, wrong types, size caps, empty body -> 400). Authorization is a server-side role and team lookup (admin, or team member whose team owns the incident's alert service); never trust anything the client sends. 403/404/409 behaviour exactly as in the contract.
+  2. Schema: add reviewed_draft JSONB, reviewed_by (references users), reviewed_at TIMESTAMPTZ, finalized_at TIMESTAMPTZ to incidents. There is no migration runner yet: add deploy/db/migrations/001_incident_review.sql (idempotent: ADD COLUMN IF NOT EXISTS) AND update deploy/db/init.sql so a fresh database has the same columns. Describe how to apply the migration in the PR and in deploy/README.md. Do not wipe anyone's database.
+  3. Include the new fields in GET /api/v1/incidents.
+  4. Tests against the seeded Postgres: admin edits; owning-team member edits; other-team member 403; unknown incident 404; bad body 400; the original root_cause_draft is untouched; finalize sets status and finalized_at; team member editing a final incident 409; admin can still edit it. Existing tests keep passing; `npx tsc --noEmit` clean.
+  5. Update services/bff-server/README.md.
+  Done when: all of the above tests pass and the contract in SHARED CONTRACTS is met exactly (Sriram builds the UI against it). This touches IAM, so Sriram reviews.
+
+TASK 2 (branch feat/team-dashboard; Manmitha slice): Team dashboard.
+  Read: services/dashboard/README.md, docs/wireframes/README.md and team-incident-view.svg, the NEW API 2 contract.
+  Do:
+  1. BFF: GET /api/v1/services per the contract (admin all, team member own team's), with tests including a 6-digit user never seeing another team's services. Update the BFF README. (Small, in src/teams or a new src/services file.)
+  2. Dashboard: src/pages/team/TeamPage.tsx at /team: a card or table per owned service (name, tier) and the team's incidents (title, status, service, time, draft badge) from GET /incidents, with a read-only detail panel showing the blast radius and the drafted hypothesis; flagged drafts marked, unsupported claims shown from validation.claims. A small banner states the view is scoped to the team. Replace the TeamHome placeholder.
+  3. Loading, empty and error states; 401/403 returns to login. Render only what the API returns.
+  4. Tests for BFF and dashboard. npm test (both) and npm run build pass.
+  Done when: logged in as 100101 you see only payments-team services and incidents; as 100103 only core-platform's (state what you ran).
+
+------------------------------------------------------------------------------
+VIVEK - On-Call Router and Bot
+------------------------------------------------------------------------------
+TASK 1 (branch feat/router): Router spec and scoring.
+  Read: deploy/db/init.sql (teams, team_members, services and the seed), services/bff-server/src/teams, docs/llm-output-schema.md, docs/evaluation/Chaos_Scenarios.md (service ownership table). Seeded members: 100101 Dev Dave (payments, mid, on call), 100102 Sara Senior (payments, lead, not on call), 100103 Ken Platform (core-platform, senior, on call). Ownership: payments owns checkout-service, payment-gateway, bank-network; core-platform owns frontend-proxy, inventory-service, recommendation-engine.
+  Do:
+  1. Write docs/router-scoring.md: inputs; mapping affected services to owning teams (weight the team that owns the alerting service highest); how skill match, seniority and availability (is_on_leave, on_call_status) are scored and weighted, with the numbers and the reasons; people on leave are never paged; fallback when nobody on the owning team is available; the mixed-seniority pairing rule (a senior or lead owner plus an available junior or mid where possible); one fully worked example (checkout-service incident, blast radius [checkout-service, payment-gateway, inventory-service, bank-network, frontend-proxy]) showing every score and the final 2 people; a second example where one of them is on leave; open questions for Sriram at the end.
+  2. Implement it in services/correlation_engine/src/router/ as a pure function (no database): input blast radius, alert service, a service-to-team map, and a list of members (id, team_id, seniority, skills, is_on_leave, on_call_status); output the top 2 with a score breakdown and a reason string for each. Expose it as POST /route in src/api.py with request validation and size caps.
+  3. Tests that reproduce both worked examples from your doc, leave handling, the fallback, the pairing rule, empty input. Coverage above 85%, ruff clean.
+  Done when: given the seeded members and the checkout incident, the router returns the 2 people your doc says, and skips anyone on leave.
+  (The Telegram bot hello script is NOT part of this round; it is first in "Next work" below.)
+
+TASK 2 (branch feat/dashboard-directory; Manmitha slice): Admin leave and Team Directory screens.
+  Read: services/dashboard/README.md, docs/wireframes/README.md, services/bff-server/README.md (Auth and Team Directory table).
+  Do:
+  1. src/pages/admin/DirectoryPage.tsx at /admin/directory: list teams (GET /teams); selecting one lists its members (GET /teams/:teamId/members) with seniority, skills, telegram chat set or not (do not display chat ids), leave status and on-call status.
+  2. Admin controls: toggle is_on_leave and on_call_status, edit seniority and skills, through PATCH /members/:userId/status (send team_id when the user is in several teams; show the 409 message clearly). Confirm before marking someone on leave. After a save, reload the row from the server and show the stored value, not the typed one.
+  3. Add a link from AdminHome. Loading, empty, error states; 401/403 to login.
+  4. Tests: list rendering, toggle sends the right body (including team_id), 409 handling, reload after save. npm test and npm run build pass.
+  Done when: as 10001 against the real BFF you can mark Sara Senior on leave and back (restore the original values afterwards); state what you ran.
+
+------------------------------------------------------------------------------
+GOUTHAM - Testing and Evaluation
+------------------------------------------------------------------------------
+TASK 1 (branch feat/test-services): Instrumented test microservices on Minikube.
+  Why: the chaos manifests in evaluation/chaos target namespace perimeter-test and pods labelled app=<service>, but no such pods exist, so live runs cannot happen and every accuracy score so far is mock against mock.
+  Read: docs/evaluation/Chaos_Scenarios.md (topology and ownership), evaluation/chaos/*.yaml (selectors), evaluation/run_chaos.py, src/mock/fixtures.py (the span shapes and the call graph: frontend-proxy -> checkout-service -> payment-gateway -> bank-network, checkout-service -> inventory-service, recommendation-engine isolated), deploy/k8s/README.md and values (the OTel Collector).
+  Do:
+  1. Create services/test-services/: one small hand-instrumented HTTP service per name (python Flask/FastAPI or node, one image with the behaviour chosen by an env var is fine) that calls its downstreams over HTTP and emits OpenTelemetry spans with the service.name resource attribute, durations, and status codes (a failing downstream produces a 5xx). A small load generator hits frontend-proxy at a steady rate. Dockerfile(s), non-root.
+  2. Kubernetes manifests (plain YAML or kustomize) in deploy/k8s/test-services/ for namespace perimeter-test with labels `app=<service>` exactly matching evaluation/chaos/*.yaml selectors, exporting traces to the OTel Collector in the perimeter namespace.
+  3. Document in docs/evaluation/Chaos_Scenarios.md how to deploy them, and update the "Draft Manifest Status" note with what is now true.
+  4. Tests for the service logic that need no cluster. Keep any Python you add clean under ruff.
+  Done when: after `kubectl apply` the six pods are Running, `kubectl get pods -n perimeter-test -l app=payment-gateway` returns a pod, and collector logs show spans for the checkout -> payment-gateway -> bank-network chain (show the output). If Minikube is not available on this machine, do everything else, say clearly it was not run on a cluster, and list the manual verification steps.
+  Next after this (not part of this task): the live chaos run, once Sriram's Minikube deployment is merged.
+
+TASK 2 (branch feat/dashboard-evaluation; Manmitha slice): Evaluation results screen.
+  Read: services/dashboard/README.md, evaluation/benchmark/results/*.json (the real file shapes), docs/evaluation/Chaos_Scenarios.md, the NEW API 3 contract.
+  Do:
+  1. BFF: GET /api/v1/evaluation/results exactly per the contract (admin only, tolerant of missing or bad files), with tests (admin ok, team member 403, no token 401, bad file skipped). Add the env var to .env.example and a read-only volume mount in deploy/docker-compose.yml so the container sees evaluation/benchmark/results (you may edit these for this task). Update the BFF README.
+  2. Dashboard: src/pages/admin/EvaluationPage.tsx at /admin/evaluation: for each run show source, run time, environment, pass rate, and a per-scenario table (injected fault, target, expected vs found services, precision, recall, services wrongly included). Always show the run's `notice` prominently. Any run with dry_run true is labelled "Dry run: mock data, not an accuracy result". Add a link from AdminHome.
+  3. Tests for BFF and dashboard. npm test (both) and npm run build pass.
+  Done when: as 10001 the screen shows the real files in evaluation/benchmark/results with the dry-run label and the controlled-environment notice; as a team member the endpoint returns 403 (state what you ran).
+
+
+==============================================================================
+AFTER THE TASKS
+==============================================================================
+
+- Each person: post the PR links in the group chat with what you tested. Do not merge your own PR; Sriram merges. After a PR is merged, run STEP 1 again before any new work.
+- Next work, in order (Sriram assigns when both tasks are merged): Telegram bot hello script and reusable sender, with the BotFather setup done by Vivek himself (token only in .env); migrations and alert de-duplication (David + Jyothi), draft queue with rate-limit retry (Sriram), router and bot called from the alert flow (Vivek), live chaos run and measured accuracy (Goutham), event store as the real source (David), Terraform, ArgoCD, Vault and the RDS/DynamoDB move (Sriram), then integration, demo, write-up, paper and patent drafts (everyone).
+
+
+==============================================================================
+WORKING AGREEMENTS
+==============================================================================
+
+- One owner per module. Others contribute through pull requests, never direct pushes.
+- Branch from develop, squash-merge into develop; develop is merged into main by the lead for releases (see CONTRIBUTING.md).
+- Every pull request needs one approval from someone other than the author, and the required CI checks green. Tests ship with the change.
+- Weekly check-in in the group chat: what you finished, what is blocked, what is next. Asking for help early counts as progress.
+- Nothing sensitive in the repo. Secrets go in your local .env (Vault later). Raw telemetry and logs never leave the cluster.
+- Results from fault injection come from a controlled test environment and are always labelled that way, never as production results.
+- Move to the next milestone when the current one passes its "Done when" checks, not on a date.
+
+MILESTONES
+1. Foundation: cluster, CI, schemas, IAM skeleton (done)
+2. Core pipeline: graph, compressor, LLM call with validator (done on mock data); event store and real sources (David, in progress)
+3. Surfaces: dashboard screens, edit-and-finalize, router (this round); Telegram bot next
+4. Evaluation: instrumented services, live chaos run, first real accuracy numbers
+5. Cloud migration: RDS, DynamoDB, Terraform, ArgoCD, Vault, EKS
+6. Integration and demo: end-to-end run, write-up, documentation, paper and patent drafts

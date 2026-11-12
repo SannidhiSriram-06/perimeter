@@ -1,5 +1,5 @@
 # Each path's owner is requested as a reviewer on PRs that touch it.
-# Ownership follows the roles in TEAM_ROLES.txt.
+# Ownership follows the roles in docs/team/Team_Roles_and_AI_Agent_Prompts.txt.
 
 # Default: Sriram reviews anything not claimed below
 *                                   @SannidhiSriram-06

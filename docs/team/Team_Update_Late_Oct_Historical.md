@@ -1,5 +1,7 @@
 # Team update: what changed and how to get running
 
+> **Historical note (written for PR #39, late October).** The setup steps and commands below still work, but the project has moved on: the signal compressor, the LLM draft with its validator, the incidents API, the chaos harness and the dashboard shell have all been merged since. Section 5 below is out of date. For the current status read [../README.md](../../README.md) and [audit-report.md](../audit-report.md).
+
 Read this before you start your Thursday tasks. A big change landed in `develop` (PR #39). Some things you may already have open or half-done now work differently.
 
 ## 1. What changed (the short version)
@@ -66,7 +68,7 @@ The BFF README (`services/bff-server/README.md`) lists every endpoint.
 
 ## 4. Your Thursday tasks, updated
 
-The tasks in `TEAM_ROLES.txt` still stand, but some got easier or changed. Anything not listed below is unchanged.
+The tasks in `docs/team/Team_Roles_and_AI_Agent_Prompts.txt` still stand, but some got easier or changed. Anything not listed below is unchanged.
 
 **David (Data)**
 - Task 2 (seed all six services) is **already done**: `deploy/db/init.sql` now has all six mock services. Your job is to check it: load it into a fresh database, confirm each service has the owning team you expect, and fix anything that looks wrong.
