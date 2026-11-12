@@ -1,5 +1,5 @@
 # Each path's owner is requested as a reviewer on PRs that touch it.
-# Ownership follows the roles in TEAM_ROLES.txt.
+# Ownership follows the team roles agreed in the project.
 
 # Default: Sriram reviews anything not claimed below
 *                                   @SannidhiSriram-06
