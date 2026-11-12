@@ -32,7 +32,7 @@ flowchart LR
     class Dash,Router,Tele planned
 ```
 
-Green components exist in the repository today and run end to end on mock telemetry. Grey components are planned (the dashboard has a login shell only). See [docs/design/Architecture_and_45_Day_Roadmap.md](docs/design/Architecture_and_45_Day_Roadmap.md) for the design and [docs/audit-report.md](docs/audit-report.md) for the current, tested status and known defects.
+Green components exist in the repository today and run end to end on mock telemetry. Grey components are planned (the dashboard has a login shell only). See [docs/design/Event_Store_Design.md](docs/design/Event_Store_Design.md) for the planned event store.
 
 ## Status
 
@@ -123,15 +123,10 @@ deploy/
   db/init.sql           Schema and dev seed data
   k8s/                  Minikube bootstrap (up.sh, Helm values, sample trace job)
 docs/
-  audit-report.md       Current audit: tested status, findings, proposal-versus-code table
-  progress-report.md    Progress summary against the proposal
   llm-output-schema.md  Contract between the model, the validator and the dashboard
-  design/               Architecture_and_45_Day_Roadmap.md, Event_Store_Design.md
+  design/               Event_Store_Design.md
   evaluation/           Chaos_Scenarios.md
-  reports/              PDF snapshots: proposal, progress reports, audit
-  team/                 Team roles and AI agent prompts, historical team update
   wireframes/           Dashboard wireframes (SVG)
-  screenshots/, diagrams/, social-media/, archive/
 scripts/
   demo.sh               One-command demo
 .github/                CI workflows and CODEOWNERS

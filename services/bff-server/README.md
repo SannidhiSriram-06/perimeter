@@ -70,7 +70,7 @@ Receives Prometheus Alertmanager webhook notifications. Each firing alert is sen
 - **Limits**: body up to 1 MB, at most 100 alerts per request (400 otherwise)
 - **Response**: `202 Accepted` with the new incident IDs
 
-**Known limits:** resolved alerts are ignored and a re-delivered firing alert creates another incident and another draft (no de-duplication yet); an alert for a service unknown to the engine is stored `open` with an empty blast radius. See `docs/audit-report.md` (N-01, N-09).
+**Known limits:** resolved alerts are ignored and a re-delivered firing alert creates another incident and another draft (no de-duplication yet); an alert for a service unknown to the engine is stored `open` with an empty blast radius.
 
 **Example Request:**
 ```bash

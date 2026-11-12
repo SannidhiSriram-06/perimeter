@@ -44,7 +44,7 @@ Perimeter is designed for data-sovereign environments (BFSI, government, healthc
    - Rate limits per IP: 10 failed logins and 600 API requests per 15 minutes (counted per process).
 4. **LLM boundary**: the only data sent outside the cluster is a compressed context (service names, trace edges and short evidence records) to the configured model provider. Model output is never trusted: a validator checks every claim against the evidence and the dashboard shows text built from the checked fields.
 
-## Known limitations (see [docs/audit-report.md](docs/audit-report.md))
+## Known limitations
 
 - `deploy/db/init.sql` seeds demo users that all share the public password `perimeter-dev`. Never load it into a shared or production database.
 - The correlation engine API has no authentication and does not cap request size; keep it on an internal network. `/draft` spends the model quota of whoever can reach it.

@@ -53,7 +53,7 @@ Common types: `feat`, `fix`, `ci`, `docs`, `chore`, `test`, `refactor`.
 
 ## Ownership
 
-Areas and owners are listed in [.github/CODEOWNERS](.github/CODEOWNERS) and in [docs/team/Team_Roles_and_AI_Agent_Prompts.txt](docs/team/Team_Roles_and_AI_Agent_Prompts.txt) where the team keeps it.
+Areas and owners are listed in [.github/CODEOWNERS](.github/CODEOWNERS).
 
 ## Running things locally
 
