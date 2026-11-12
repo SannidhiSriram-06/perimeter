@@ -105,7 +105,7 @@ describe('GET /api/v1/evaluation/results', () => {
       headers: { Authorization: `Bearer ${token}` },
     });
     assert.equal(res.status, 403);
-    const body = await res.json();
+    const body = (await res.json()) as { error: string; message: string };
     assert.equal(body.error, 'Forbidden');
     assert.match(body.message, /admin role required/i);
   });
