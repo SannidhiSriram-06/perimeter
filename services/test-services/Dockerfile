@@ -1,6 +1,6 @@
 # Multi-stage Dockerfile for Perimeter Test Microservices
 # Non-root container image compatible with Kubernetes and Chaos Mesh
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
 WORKDIR /build
 
@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+RUN pip install --no-cache-dir --only-binary :all: --user -r requirements.txt
 
 # Final runtime image
 FROM python:3.11-slim
@@ -24,7 +24,7 @@ RUN groupadd -g 10001 appgroup && \
 COPY --from=builder /root/.local /home/appuser/.local
 
 # Copy application source code
-COPY . /app/
+COPY app.py loadgen.py /app/
 RUN chown -R appuser:appgroup /app
 
 USER 10001:10001

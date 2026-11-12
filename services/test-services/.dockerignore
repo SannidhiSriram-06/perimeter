@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+tests/
+.venv/
+.git/
+.gitignore
+.dockerignore
+README.md
+pyproject.toml

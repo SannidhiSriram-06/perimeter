@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import httpx
 import pytest
@@ -187,14 +187,28 @@ def test_frontend_proxy_to_checkout(client: TestClient):
 
 def test_loadgen_run_bounded():
     """Verifies that loadgen runs for the requested count and handles responses."""
-    mock_resp = MagicMock()
-    mock_resp.status = 200
-    mock_resp.__enter__.return_value = mock_resp
+    mock_resp = httpx.Response(200, json={"status": "ok"})
 
-    with patch("urllib.request.urlopen", return_value=mock_resp):
+    with patch.object(httpx.Client, "post", return_value=mock_resp):
         count = loadgen.run_loadgen(
             url="http://mock-frontend:8080/api/checkout",
             interval=0.01,
             max_requests=3,
         )
         assert count == 3
+
+
+def test_loadgen_validate_url():
+    """Verifies that URL validation prevents SSRF by checking schemes and host presence."""
+    assert loadgen.validate_url("http://frontend-proxy:8080/api/checkout") == "http://frontend-proxy:8080/api/checkout"
+    assert loadgen.validate_url("https://secure-proxy/api/checkout") == "https://secure-proxy/api/checkout"
+
+    with pytest.raises(ValueError, match="Invalid URL scheme"):
+        loadgen.validate_url("ftp://malicious-host/api/checkout")
+
+    with pytest.raises(ValueError, match="Invalid URL scheme"):
+        loadgen.validate_url("file:///etc/passwd")
+
+    with pytest.raises(ValueError, match="Host and network location must not be empty"):
+        loadgen.validate_url("http://")
+

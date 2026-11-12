@@ -1,7 +1,7 @@
 """Instrumented microservices for Project Perimeter synthetic chaos evaluation.
 
 Emits OpenTelemetry spans matching the topology and call graph in
-docs/evaluation/Chaos_Scenarios.md and services/correlation_engine/src/mock/fixtures.py:
+docs/evaluation/Chaos_Scenarios.md and services/correlation-engine/src/mock/fixtures.py:
   frontend-proxy -> checkout-service -> payment-gateway -> bank-network
   checkout-service -> inventory-service
   recommendation-engine (isolated background service)

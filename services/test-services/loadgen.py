@@ -7,13 +7,13 @@ simulating customer checkouts and stimulating the OpenTelemetry trace pipeline.
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import os
 import sys
 import time
-import urllib.error
-import urllib.request
+from urllib.parse import urlparse
+
+import httpx
 
 logging.basicConfig(
     level=logging.INFO,
@@ -26,6 +26,19 @@ DEFAULT_FRONTEND_URL = os.getenv(
 )
 DEFAULT_INTERVAL_SECONDS = float(os.getenv("INTERVAL_SECONDS", "2.0"))
 DEFAULT_MAX_REQUESTS = int(os.getenv("MAX_REQUESTS", "0"))
+ALLOWED_URL_SCHEMES = ("http", "https")
+
+
+def validate_url(url: str) -> str:
+    """Validates URL scheme and host structure to guard against SSRF (SonarCloud S8703)."""
+    parsed = urlparse(url)
+    if parsed.scheme.lower() not in ALLOWED_URL_SCHEMES:
+        raise ValueError(
+            f"Invalid URL scheme '{parsed.scheme}'. Only http and https URLs are allowed."
+        )
+    if not parsed.netloc:
+        raise ValueError(f"Invalid URL '{url}': Host and network location must not be empty.")
+    return url
 
 
 def run_loadgen(
@@ -34,62 +47,61 @@ def run_loadgen(
     max_requests: int = DEFAULT_MAX_REQUESTS,
     timeout: float = 10.0,
 ) -> int:
-    """Sends steady checkout requests to frontend-proxy.
+    """Sends steady checkout requests to frontend-proxy using httpx.
 
     Returns the number of completed requests.
     """
-    logger.info("Starting load generator targeting %s every %.1fs", url, interval)
+    valid_url = validate_url(url)
+    logger.info("Starting load generator targeting %s every %.1fs", valid_url, interval)
     count = 0
 
-    while True:
-        count += 1
-        payload = json.dumps(
-            {
+    with httpx.Client(timeout=timeout) as client:
+        while True:
+            count += 1
+            payload = {
                 "order_id": f"ord-gen-{count:06d}",
                 "customer_id": f"cust-{(count % 50) + 1:04d}",
                 "amount": 49.99 + (count % 20),
                 "timestamp": time.time(),
             }
-        ).encode("utf-8")
 
-        req = urllib.request.Request(
-            url,
-            data=payload,
-            headers={
-                "Content-Type": "application/json",
-                "User-Agent": "perimeter-loadgen/1.0",
-            },
-            method="POST",
-        )
-
-        start = time.time()
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                elapsed_ms = (time.time() - start) * 1000.0
-                logger.info(
-                    "Request #%d -> status %d (%.1f ms)",
-                    count,
-                    resp.status,
-                    elapsed_ms,
+            start = time.time()
+            try:
+                resp = client.post(
+                    valid_url,
+                    json=payload,
+                    headers={
+                        "User-Agent": "perimeter-loadgen/1.0",
+                        "Content-Type": "application/json",
+                    },
                 )
-        except urllib.error.HTTPError as err:
-            elapsed_ms = (time.time() - start) * 1000.0
-            logger.warning(
-                "Request #%d -> HTTP %d: %s (%.1f ms)",
-                count,
-                err.code,
-                err.reason,
-                elapsed_ms,
-            )
-        except Exception as exc:
-            elapsed_ms = (time.time() - start) * 1000.0
-            logger.error("Request #%d failed: %s (%.1f ms)", count, exc, elapsed_ms)
+                elapsed_ms = (time.time() - start) * 1000.0
+                if resp.is_error:
+                    logger.warning(
+                        "Request #%d -> HTTP %d (%.1f ms)",
+                        count,
+                        resp.status_code,
+                        elapsed_ms,
+                    )
+                else:
+                    logger.info(
+                        "Request #%d -> status %d (%.1f ms)",
+                        count,
+                        resp.status_code,
+                        elapsed_ms,
+                    )
+            except httpx.HTTPError as err:
+                elapsed_ms = (time.time() - start) * 1000.0
+                logger.error("Request #%d failed: %s (%.1f ms)", count, err, elapsed_ms)
+            except Exception as exc:
+                elapsed_ms = (time.time() - start) * 1000.0
+                logger.error("Request #%d failed: %s (%.1f ms)", count, exc, elapsed_ms)
 
-        if 0 < max_requests <= count:
-            logger.info("Completed %d requested requests. Stopping.", count)
-            break
+            if 0 < max_requests <= count:
+                logger.info("Completed %d requested requests. Stopping.", count)
+                break
 
-        time.sleep(interval)
+            time.sleep(interval)
 
     return count
 
