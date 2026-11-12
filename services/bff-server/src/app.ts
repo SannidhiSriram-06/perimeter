@@ -6,6 +6,7 @@ import { requireAuth } from './auth/middleware';
 import { teamsRouter } from './teams/routes';
 import { incidentsRouter } from './incidents/routes';
 import { alertsRouter } from './alerts/routes';
+import { evaluationRouter } from './evaluation/routes';
 import { createLimiters } from './rateLimit';
 
 export interface AppDeps {
@@ -47,7 +48,14 @@ export function createApp({
 
   const limiters = createLimiters();
   app.use('/api/v1/auth', limiters.login, authRouter(pool, authSecret));
-  app.use('/api/v1', limiters.api, requireAuth(pool, authSecret), teamsRouter(pool), incidentsRouter(pool));
+  app.use(
+    '/api/v1',
+    limiters.api,
+    requireAuth(pool, authSecret),
+    teamsRouter(pool),
+    incidentsRouter(pool),
+    evaluationRouter()
+  );
 
   // Last, so rejected handlers (e.g. database down) get a JSON 500 instead of Express's HTML stack trace.
   app.use((err: Error & { status?: number }, _req: Request, res: Response, _next: NextFunction) => {

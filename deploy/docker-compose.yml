@@ -46,6 +46,9 @@ services:
       WEBHOOK_SECRET: ${WEBHOOK_SECRET:?set WEBHOOK_SECRET in .env}
       CORRELATION_URL: http://correlation-engine:8000
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      EVALUATION_RESULTS_DIR: ${EVALUATION_RESULTS_DIR:-/app/evaluation/benchmark/results}
+    volumes:
+      - ../evaluation/benchmark/results:/app/evaluation/benchmark/results:ro
 
 volumes:
   perimeter-postgres-data:
