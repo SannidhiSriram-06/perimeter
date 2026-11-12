@@ -150,7 +150,7 @@ jobs:
           set -a; . ./.env; set +a
           compose=(docker compose --env-file .env -f deploy/docker-compose.yml)
           row="$("${compose[@]}" exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At \
-            -c "SELECT status || '|' || alert_service_id || '|' || array_length(blast_radius, 1) FROM incidents ORDER BY created_at DESC LIMIT 1")"
+            -c "SELECT status || '|' || alert_service_id || '|' || jsonb_array_length(blast_radius) FROM incidents ORDER BY created_at DESC LIMIT 1")"
           echo "latest incident: $row"
           case "$row" in
             open\|checkout-service\|[2-9]*) ;;
