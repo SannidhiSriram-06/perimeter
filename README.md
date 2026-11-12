@@ -36,7 +36,7 @@ Green components exist in the repository today and run end to end on mock teleme
 
 ## Status
 
-Last audited 2026-11-08 (`develop` @ `e2e34d7`): engine 177 tests, BFF 45 tests against Postgres, dashboard 8 tests, all passing; engine coverage 99%. About 40% of the proposal's scope is built. Everything the engine reasons about is still **mock telemetry**: there is no trace store or event store yet.
+Last audited 2026-11-08 (`main` @ `e2e34d7`): engine 177 tests, BFF 45 tests against Postgres, dashboard 8 tests, all passing; engine coverage 99%. About 40% of the proposal's scope is built. Everything the engine reasons about is still **mock telemetry**: there is no trace store or event store yet.
 
 | Component | Status |
 | :--- | :--- |

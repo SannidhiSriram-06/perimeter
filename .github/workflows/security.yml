@@ -1,15 +1,15 @@
 name: Security
 
 # Free-tier notes: this repository is public, so Actions minutes on standard runners are free.
-# Every job is short (about a minute), runs on ubuntu-latest, and old runs are cancelled when a branch is pushed again.
+# Every job is short (about a minute), runs on ubuntu-latest, and old runs are cancelled when a pull request is pushed again.
 # CodeQL is not in this file: it is enabled as "default setup" in the repository settings (Security and quality > Code scanning).
 # A CodeQL workflow here would clash with that setup.
 
 on:
   push:
-    branches: [develop, main]
+    branches: [main]
   pull_request:
-    branches: [develop, main]
+    branches: [main]
   schedule:
     # Weekly run catches new advisories on dependencies that have not changed.
     - cron: "17 3 * * 1"

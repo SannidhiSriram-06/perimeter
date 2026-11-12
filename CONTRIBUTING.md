@@ -4,29 +4,27 @@ Thanks for helping build Perimeter. This page covers how work moves through the 
 
 ## Branches
 
-There are two shared branches:
+There is one long-lived branch: `main`. It is always releasable, and every change reaches it through a pull request.
 
-- `develop`: the working branch. All finished work lands here.
-- `main`: released code only. It is updated by merging `develop` into it.
-
-No other branches are allowed on the remote. GitHub blocks creating them.
+You need a short-lived branch to open a pull request. Create it from `main`, push it, and it is deleted automatically when the pull request merges. There is no `develop` branch and no release merges.
 
 ## Making a change
 
-1. Pull the latest `develop`.
-2. Make your change locally.
-3. Open a pull request into `develop` and request review. CODEOWNERS requests the owner of each area you touched.
-4. Get approval (see [Who approves](#who-approves)).
-5. Merge with **Squash and merge**.
+1. Pull the latest `main` and create a branch from it (for example `feat/router-scoring`).
+2. Make your change locally and run the tests for the area you touched.
+3. Push the branch and open a pull request into `main`. CODEOWNERS requests the owner of each area you touched. Auto-merge is switched on for you.
+4. CI runs on the pull request. Fix anything red by pushing to the same branch.
+5. Once the pull request has one approval and all required checks are green, GitHub squash-merges it.
+6. After the merge, CI runs again on `main` and adds an integration job that starts the full stack (Postgres, engine, BFF), sends an alert and checks the stored incident. If it fails, fixing it is the next priority.
 
 ## Who approves
 
 - **Teammates:** every pull request needs one approval from someone other than its author. In practice the lead (@SannidhiSriram-06) approves, and aims to do so within 15 minutes of a request. Ping the lead in the group chat when you open a PR.
-- **The lead:** the lead's own pull requests do not need anyone else's approval. The lead merges them once the required checks pass.
+- **The lead:** the lead's own pull requests can be merged by the lead once the required checks pass.
 - **Checks are not optional for anyone.** Nobody merges with a failing required check, the lead included.
 - Pull requests that touch infra, CI, AI or IAM always get the lead's review, whoever wrote them.
 
-Required checks must pass before merge: the correlation engine tests, the BFF build, and docker-compose validation.
+Required checks must pass before merge: correlation engine tests, BFF build, dashboard tests, test-services tests, docker-compose validation, lint, Docker image builds, and the Python and npm security audits.
 
 Other automated checks run on every pull request and weekly:
 
@@ -34,11 +32,11 @@ Other automated checks run on every pull request and weekly:
 - Security: dependency review, `npm audit`, `pip-audit`, bandit, and CodeQL (set up in repository settings, not in a workflow file).
 - Coverage: the engine tests fail below 85% coverage.
 
-Run the same checks locally with `ruff check services/correlation_engine` and `cd services/bff-server && npm audit --omit=dev`.
+Run the same checks locally with `ruff check services/correlation_engine services/test-services` and `cd services/bff-server && npm audit --omit=dev`.
 
 ## Releases
 
-When `develop` is stable, the repository owner opens a pull request from `develop` into `main` and merges it. No extra approval is needed for this step, because the `develop` changes were already approved.
+There is no separate release step. Whatever is on `main` is the release, and the post-merge integration job is its health check.
 
 ## Commit messages
 
