@@ -72,3 +72,14 @@ htmlcov/
 
 # Benchmark evaluation results
 evaluation/benchmark/results/
+
+# Project-management material kept locally (not part of the code repository)
+docs/team/
+docs/social-media/
+docs/screenshots/
+docs/diagrams/
+docs/archive/
+docs/reports/
+docs/audit-report.md
+docs/progress-report.md
+docs/design/Architecture_and_45_Day_Roadmap.md

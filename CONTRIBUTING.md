@@ -53,10 +53,12 @@ Common types: `feat`, `fix`, `ci`, `docs`, `chore`, `test`, `refactor`.
 
 ## Ownership
 
-Areas and owners are listed in [.github/CODEOWNERS](.github/CODEOWNERS) and in [TEAM_ROLES.txt](TEAM_ROLES.txt) where the team keeps it.
+Areas and owners are listed in [.github/CODEOWNERS](.github/CODEOWNERS).
 
 ## Running things locally
 
 - Local dependencies: see [deploy/README.md](deploy/README.md).
 - Correlation engine tests: `cd services/correlation_engine && python3 -m pytest tests/`
+- Backend tests (need Postgres loaded from `deploy/db/init.sql`): `cd services/bff-server && TEST_DATABASE_URL=... npm test`
+- Dashboard tests: `cd services/dashboard && npm test`
 - Demo: `./scripts/demo.sh`
