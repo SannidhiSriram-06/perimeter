@@ -177,3 +177,42 @@ def test_rebased_timestamps_fall_inside_the_validator_window(graph) -> None:
     stamps = [e["timestamp"] for e in ctx["evidence"] if "timestamp" in e]
     assert stamps
     assert all(t.startswith("2026-11-05T18:") for t in stamps)
+
+
+def _brute_force_choice(graph, blast, spans, budget):
+    """The original selection rule: re-render the whole context for every candidate. Slow, but obviously correct."""
+    from src.compressor import compressor as c
+
+    ctx = {"incident_id": "inc-1", "alert": dict(ALERT), "blast_radius": blast, "evidence": [],
+           "trace_edges": run(graph, 20_000, blast=blast, spans=[], logs=[], metrics=[])["trace_edges"]}
+    prox = c._proximity(graph, ALERT["service"])
+    cands = c._candidates(set(blast), spans, [], [])
+    ranked = sorted(((c._rank(i, sc, prox), i["id"], i) for sc, i in cands), key=lambda r: (-r[0], r[1]))
+    chosen = []
+    for _, _, item in ranked:
+        if estimate_tokens(c._render({**ctx, "evidence": chosen + [item]})) <= budget:
+            chosen.append(item)
+    return [e["id"] for e in chosen]
+
+
+@pytest.mark.parametrize("budget", [400, 700, 1000, 1500, 3000])
+def test_fast_size_accounting_matches_the_exact_rule(graph, budget) -> None:
+    blast = graph.get_blast_radius("checkout-service", direction="both")
+    spans = SPANS + [
+        {"span_id": f"x{i}", "service_name": "payment-gateway", "duration_ms": 10 * i, "status_code": 500 if i % 3 == 0 else 200,
+         "status_message": "boom " * (i % 17)}
+        for i in range(60)
+    ]
+    expected = _brute_force_choice(graph, blast, spans, budget)
+    assert ids(run(graph, budget, spans=spans, logs=[], metrics=[])) == expected
+
+
+def test_many_candidates_are_handled_in_linear_time(graph) -> None:
+    import time
+
+    spans = [{"span_id": f"s{i}", "service_name": "payment-gateway", "duration_ms": i, "status_code": 500, "status_message": "boom " * 30}
+             for i in range(5000)]
+    start = time.perf_counter()
+    ctx = run(graph, 20_000, spans=spans, logs=[], metrics=[])
+    assert time.perf_counter() - start < 1.0  # was about 5 seconds before the incremental size accounting
+    assert estimate_tokens(json.dumps(ctx, sort_keys=True, indent=2)) <= 20_000

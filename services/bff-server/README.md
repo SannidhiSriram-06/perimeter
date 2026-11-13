@@ -107,7 +107,7 @@ curl -X POST http://localhost:3001/api/v1/alerts/webhook \
 
 ## Auth and Team Directory
 
-Requires `DATABASE_URL`, `AUTH_SECRET` and `WEBHOOK_SECRET`, and uses `CORRELATION_URL`, `WEBHOOK_SECRET`, `CORS_ORIGIN` and `TRUST_PROXY` (see `.env.example`). The database must have `deploy/db/init.sql` loaded.
+Requires `DATABASE_URL`, `AUTH_SECRET` and `WEBHOOK_SECRET` (each secret must be at least 32 random characters; placeholders such as `change_me...` are refused at startup), and uses `CORRELATION_URL`, `WEBHOOK_SECRET`, `CORS_ORIGIN` and `TRUST_PROXY` (see `.env.example`). The database must have `deploy/db/init.sql` loaded.
 
 | Method | Path | Who | Purpose |
 | :--- | :--- | :--- | :--- |
