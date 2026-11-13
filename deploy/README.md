@@ -53,7 +53,25 @@ SELECT id, name FROM teams;
 
 You should see `team-payments` and `team-core-platform`. Type `\q` to exit.
 
-## 4. Reset the database
+## 4. Database Migrations
+
+Migrations are stored in `deploy/db/migrations/` and use idempotent `ADD COLUMN IF NOT EXISTS` statements so they can be run against an existing database without data loss.
+
+To apply migration `001_incident_review.sql` to a running `perimeter-postgres` container:
+
+```bash
+docker exec -i perimeter-postgres psql -U perimeter -d perimeter_db < deploy/db/migrations/001_incident_review.sql
+```
+
+Or via direct psql connection:
+
+```bash
+psql "$DATABASE_URL" -f deploy/db/migrations/001_incident_review.sql
+```
+
+Fresh databases initialized with `deploy/db/init.sql` automatically include the new columns (`reviewed_draft`, `reviewed_by`, `reviewed_at`, `finalized_at`).
+
+## 5. Reset the database
 
 Re-running `init.sql` requires an empty volume. This deletes all local data:
 
@@ -62,7 +80,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml down -v
 docker compose --env-file .env -f deploy/docker-compose.yml up -d
 ```
 
-## 5. Stop the stack
+## 6. Stop the stack
 
 ```bash
 docker compose --env-file .env -f deploy/docker-compose.yml down
