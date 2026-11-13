@@ -1,0 +1,31 @@
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /services/test-services
+    schedule:
+      interval: weekly
+    groups:
+      # The OpenTelemetry packages pin each other, so they must be bumped together.
+      opentelemetry:
+        patterns:
+          - "opentelemetry-*"
+  - package-ecosystem: pip
+    directory: /services/correlation_engine
+    schedule:
+      interval: weekly
+    groups:
+      opentelemetry:
+        patterns:
+          - "opentelemetry-*"
+  - package-ecosystem: npm
+    directory: /services/bff-server
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /services/dashboard
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
