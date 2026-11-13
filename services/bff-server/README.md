@@ -117,6 +117,7 @@ Requires `DATABASE_URL`, `AUTH_SECRET` and `WEBHOOK_SECRET`, and uses `CORRELATI
 | GET | `/api/v1/members/:userId` | admin or same team | Returns `{ member: {...} }`. If the user is in several teams, pass `?team_id=` or get 409. |
 | PATCH | `/api/v1/members/:userId/status` | admin only | Update `is_on_leave`, `on_call_status`, `seniority`, `skills`. Returns `{ member: {...} }`. Add `team_id` in the body when the user is in several teams (409 otherwise). |
 | GET | `/api/v1/incidents` | signed in | Newest 100 incidents with `blast_radius`, `root_cause_draft` and `service_name`. Admins see all. Team members see only incidents whose alerting service their team owns; incidents on unknown services are admin-only. |
+| GET | `/api/v1/evaluation/results` | admin only | Reads evaluation benchmark and chaos execution summary records from `EVALUATION_RESULTS_DIR` (default: `evaluation/benchmark/results`). Team members get 403. Corrupt or unreadable files are skipped. |
 
 Send the token as `Authorization: Bearer <token>`. The role is never trusted from the token: it is read from the database and cached for 30 seconds per process, so a changed or deleted user loses access within 30 seconds. Tokens last 8 hours and cannot be revoked. Limits per IP and 15 minutes: 10 failed logins, 600 API requests.
 
