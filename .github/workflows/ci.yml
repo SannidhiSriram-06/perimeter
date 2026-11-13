@@ -86,6 +86,8 @@ jobs:
           python-version: "3.12"
       - run: "pip install --only-binary=:all: ruff==0.17.3"
       - run: ruff check services/correlation_engine services/test-services
+      # E402 is allowed here: the harness scripts adjust sys.path before importing the engine.
+      - run: ruff check --select E,F,W,B --ignore E501,E402 evaluation
       - run: shellcheck scripts/*.sh deploy/k8s/up.sh
       - run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color
 

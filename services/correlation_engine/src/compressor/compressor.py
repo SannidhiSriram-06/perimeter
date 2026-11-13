@@ -72,13 +72,25 @@ def compress(
         key=lambda r: (-r[0], r[1]),
     )
 
+    # Size is tracked incrementally: re-rendering the whole context for every candidate made this quadratic in the
+    # number of candidates. `base` is the rendered context with an empty evidence list ("[]").
+    limit_chars = token_budget * 4
+    base = len(_render(context)) - len("[]")
+    used = 0  # characters of the rendered evidence array, excluding its two brackets and line breaks
     chosen: List[Dict[str, Any]] = []
     for _, _, item in ranked:
-        trial = {**context, "evidence": chosen + [item]}
-        if estimate_tokens(_render(trial)) <= token_budget:
+        cost = len(_render_evidence_item(item)) + (len(",\n") if chosen else 0)
+        # "[\n" before the first item and "\n  ]" after the last add 5 characters once the list is not empty.
+        if base + used + cost + len("[\n") + len("\n  ]") <= limit_chars:
             chosen.append(item)
+            used += cost
     context["evidence"] = chosen
     return context
+
+
+def _render_evidence_item(item: Mapping[str, Any]) -> str:
+    """One evidence item exactly as `_render` prints it inside the `evidence` array (4 spaces deep)."""
+    return "    " + json.dumps(item, sort_keys=True, indent=2).replace("\n", "\n    ")
 
 
 def _proximity(graph: ServiceDependencyGraph, origin: Optional[str]) -> Dict[str, float]:

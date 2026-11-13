@@ -1,5 +1,6 @@
 """Tests for the HTTP interface (POST /correlate, GET /health)."""
 
+import pytest
 from fastapi.testclient import TestClient
 
 from src.api import app
@@ -146,3 +147,36 @@ def test_draft_endpoint_422_when_budget_cannot_hold_the_blast_radius(monkeypatch
     monkeypatch.setattr(api, "compress", too_small)
     with TestClient(app) as client:
         assert client.post("/draft", json={"incident_id": "i", "service": "checkout-service"}).status_code == 422
+
+
+@pytest.mark.parametrize(
+    "field,item",
+    [
+        ("spans", {"span_id": ["not", "a", "string"], "service_name": "a"}),
+        ("spans", {"span_id": "s", "service_name": "a", "status_code": "five hundred"}),
+        ("spans", {"span_id": "s", "service_name": "a", "duration_ms": "abc"}),
+        ("logs", {"id": 5, "service": "a"}),
+        ("metrics", {"id": "m", "service": "a", "value": "high"}),
+    ],
+)
+def test_malformed_telemetry_is_a_422_not_a_500(field, item) -> None:
+    body = {"incident_id": "i", "service": "a", field: [item]}
+    assert client.post("/draft", json=body).status_code == 422
+
+
+def test_correlate_rejects_malformed_spans() -> None:
+    assert client.post("/correlate", json={"service": "a", "spans": [{"span_id": [1]}]}).status_code == 422
+
+
+def test_telemetry_lists_are_capped() -> None:
+    too_many = [{"span_id": f"s{i}", "service_name": "a"} for i in range(2_001)]
+    assert client.post("/correlate", json={"service": "a", "spans": too_many}).status_code == 422
+
+
+def test_extra_span_attributes_are_kept() -> None:
+    spans = [
+        {"span_id": "p", "service_name": "a", "attributes": {"k": "v"}},
+        {"span_id": "c", "parent_span_id": "p", "service_name": "b", "attributes": {"k": "v"}},
+    ]
+    res = client.post("/correlate", json={"service": "a", "spans": spans})
+    assert res.status_code == 200 and res.json()["impacted_services"] == ["a", "b"]
