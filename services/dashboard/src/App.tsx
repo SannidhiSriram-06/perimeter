@@ -5,7 +5,7 @@ import { useAuth } from './auth/AuthContext';
 import Login from './pages/Login';
 import AdminHome from './pages/AdminHome';
 import EvaluationPage from './pages/admin/EvaluationPage';
-import TeamHome from './pages/TeamHome';
+import TeamPage from './pages/team/TeamPage';
 
 function Index() {
   const auth = useAuth();
@@ -23,7 +23,7 @@ export default function App() {
           <Route path="/admin/evaluation" element={<EvaluationPage />} />
         </Route>
         <Route element={<RequireRole role="team_member" />}>
-          <Route path="/team" element={<TeamHome />} />
+          <Route path="/team" element={<TeamPage />} />
         </Route>
         <Route path="*" element={<Index />} />
       </Route>
