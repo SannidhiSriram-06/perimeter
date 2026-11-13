@@ -114,6 +114,7 @@ Requires `DATABASE_URL`, `AUTH_SECRET` and `WEBHOOK_SECRET` (each secret must be
 | POST | `/api/v1/auth/login` | anyone | Body `{ "id": "10001", "password": "..." }`. Returns a token. Unknown IDs, malformed IDs and wrong passwords all get the same 401. The seed password for every demo user is `perimeter-dev` (dev only). |
 | GET | `/api/v1/teams` | signed in | Admins see all teams. Team members see their own team. |
 | GET | `/api/v1/teams/:teamId/members` | admin or that team | Members of a team. |
+| GET | `/api/v1/services` | signed in | Services list. Admins see all services. Team members see only services owned by their team (`owning_team_id = user.teamId`). Returns `{ services: [...] }`. |
 | GET | `/api/v1/members/:userId` | admin or same team | Returns `{ member: {...} }`. If the user is in several teams, pass `?team_id=` or get 409. |
 | PATCH | `/api/v1/members/:userId/status` | admin only | Update `is_on_leave`, `on_call_status`, `seniority`, `skills`. Returns `{ member: {...} }`. Add `team_id` in the body when the user is in several teams (409 otherwise). |
 | GET | `/api/v1/incidents` | signed in | Newest 100 incidents with `blast_radius`, `root_cause_draft` and `service_name`. Admins see all. Team members see only incidents whose alerting service their team owns; incidents on unknown services are admin-only. |
