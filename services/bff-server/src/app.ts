@@ -5,6 +5,7 @@ import { authRouter } from './auth/routes';
 import { requireAuth } from './auth/middleware';
 import { teamsRouter } from './teams/routes';
 import { incidentsRouter } from './incidents/routes';
+import { servicesRouter } from './services/routes';
 import { alertsRouter } from './alerts/routes';
 import { evaluationRouter } from './evaluation/routes';
 import { createLimiters } from './rateLimit';
@@ -54,6 +55,7 @@ export function createApp({
     requireAuth(pool, authSecret),
     teamsRouter(pool),
     incidentsRouter(pool),
+    servicesRouter(pool),
     evaluationRouter()
   );
 
