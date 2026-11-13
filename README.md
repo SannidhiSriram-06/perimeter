@@ -82,6 +82,8 @@ cd services/dashboard && npm ci && npm test
 
 Score the chaos scenarios offline: `python evaluation/run_chaos.py --scenario all --dry-run`.
 
+Test the on-call Telegram dispatcher: `python scripts/telegram_hello.py` (see [docs/telegram-bot.md](docs/telegram-bot.md) for BotFather setup).
+
 Run the demo. It starts Postgres, the correlation engine and the BFF in Docker, sends an alert to the webhook, and prints the stored incident with its blast radius. It reuses an existing `.env` and database volume, so on a machine with real dev data it adds a row there. With `GROQ_API_KEY` set, a draft is added to the incident a few seconds later:
 
 ```bash
@@ -124,11 +126,13 @@ deploy/
   k8s/                  Minikube bootstrap (up.sh, Helm values, sample trace job)
 docs/
   llm-output-schema.md  Contract between the model, the validator and the dashboard
+  telegram-bot.md       Telegram bot configuration and dispatch guide
   design/               Event_Store_Design.md
   evaluation/           Chaos_Scenarios.md
   wireframes/           Dashboard wireframes (SVG)
 scripts/
   demo.sh               One-command demo
+  telegram_hello.py     On-call Telegram bot hello dispatcher
 .github/                CI workflows and CODEOWNERS
 ```
 
