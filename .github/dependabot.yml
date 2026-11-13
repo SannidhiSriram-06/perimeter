@@ -1,31 +1,74 @@
 version: 2
+# One grouped pull request per folder per month, minor and patch updates only.
+# Major upgrades are skipped on purpose; do them by hand when there is time.
 updates:
-  - package-ecosystem: pip
-    directory: /services/test-services
-    schedule:
-      interval: weekly
-    groups:
-      # The OpenTelemetry packages pin each other, so they must be bumped together.
-      opentelemetry:
-        patterns:
-          - "opentelemetry-*"
   - package-ecosystem: pip
     directory: /services/correlation_engine
     schedule:
-      interval: weekly
+      interval: monthly
+    open-pull-requests-limit: 1
     groups:
-      opentelemetry:
-        patterns:
-          - "opentelemetry-*"
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
+  - package-ecosystem: pip
+    directory: /services/test-services
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 1
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
   - package-ecosystem: npm
     directory: /services/bff-server
     schedule:
-      interval: weekly
+      interval: monthly
+    open-pull-requests-limit: 1
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
   - package-ecosystem: npm
     directory: /services/dashboard
     schedule:
-      interval: weekly
+      interval: monthly
+    open-pull-requests-limit: 1
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
+    open-pull-requests-limit: 1
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
