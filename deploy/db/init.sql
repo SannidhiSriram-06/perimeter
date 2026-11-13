@@ -77,6 +77,10 @@ CREATE TABLE IF NOT EXISTS incidents (
     alert_service_id VARCHAR(50) REFERENCES services(id),
     blast_radius JSONB DEFAULT '[]',
     root_cause_draft TEXT,
+    reviewed_draft JSONB,
+    reviewed_by VARCHAR(6) REFERENCES users(id) ON DELETE SET NULL,
+    reviewed_at TIMESTAMPTZ,
+    finalized_at TIMESTAMPTZ,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
