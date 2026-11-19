@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: Service
+metadata:
+  # Fixed name: deploy/k8s/values/prometheus-values.yaml points Alertmanager at perimeter-bff.perimeter.svc.cluster.local:3001
+  name: perimeter-bff
+  labels:
+    app: perimeter-bff
+spec:
+  selector:
+    app: perimeter-bff
+  ports:
+    - name: http
+      port: {{ .Values.bff.port }}
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: perimeter-bff
+  labels:
+    app: perimeter-bff
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: perimeter-bff
+  template:
+    metadata:
+      labels:
+        app: perimeter-bff
+    spec:
+      # None of these pods call the Kubernetes API.
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+        - name: bff
+          image: {{ .Values.bff.image }}
+          imagePullPolicy: {{ .Values.bff.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: 3001
+          env:
+            # Order matters: DATABASE_URL expands $(POSTGRES_PASSWORD), which must be defined before it.
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.app }}
+                  key: POSTGRES_PASSWORD
+            - name: DATABASE_URL
+              value: postgres://{{ .Values.postgres.user }}:$(POSTGRES_PASSWORD)@perimeter-postgres:5432/{{ .Values.postgres.database }}
+            - name: AUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.app }}
+                  key: AUTH_SECRET
+            - name: WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.webhook }}
+                  key: {{ .Values.secrets.webhookKey }}
+            - name: CORRELATION_URL
+              value: http://perimeter-engine:{{ .Values.engine.port }}
+            - name: CORS_ORIGIN
+              value: {{ .Values.bff.corsOrigin | quote }}
+            - name: TRUST_PROXY
+              value: {{ .Values.bff.trustProxy | quote }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          readinessProbe:
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.bff.resources | nindent 12 }}
