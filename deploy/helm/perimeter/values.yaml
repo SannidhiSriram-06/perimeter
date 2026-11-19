@@ -1,0 +1,44 @@
+# Perimeter dev chart. Not hardened for production: one replica each and a single dev PostgreSQL.
+# Resource names are fixed (not release-prefixed) because Alertmanager is configured with the BFF's
+# in-cluster address (deploy/k8s/values/prometheus-values.yaml).
+
+bff:
+  image: perimeter/bff:dev
+  imagePullPolicy: IfNotPresent
+  port: 3001
+  # Browser origins allowed to call the BFF (comma separated).
+  corsOrigin: http://localhost:5173
+  # Number of reverse proxies in front of the BFF (0 if none).
+  trustProxy: 0
+  resources:
+    requests: { cpu: 50m, memory: 96Mi }
+    limits: { memory: 256Mi }
+
+engine:
+  image: perimeter/engine:dev
+  imagePullPolicy: IfNotPresent
+  port: 8000
+  llmModel: openai/gpt-oss-120b
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { memory: 384Mi }
+
+postgres:
+  image: postgres:16-alpine
+  user: perimeter
+  database: perimeter_db
+  storage: 1Gi
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 256Mi }
+
+# Objects up.sh creates before installing the chart. The chart only references them, so no secret is in git.
+secrets:
+  # Keys: POSTGRES_PASSWORD, AUTH_SECRET, GROQ_API_KEY (may be empty: incidents are stored without a draft).
+  app: perimeter-app
+  # Bearer token Alertmanager sends to the webhook. The BFF reads the same Secret, so both sides always match.
+  webhook: perimeter-webhook
+  webhookKey: token
+
+# ConfigMap holding init.sql (key init.sql). up.sh builds it from deploy/db/init.sql.
+dbInitConfigMap: perimeter-db-init

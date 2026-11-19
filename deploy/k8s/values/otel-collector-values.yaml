@@ -3,6 +3,8 @@
 mode: deployment
 image:
   repository: otel/opentelemetry-collector-contrib
+  # Pinned to the chart's appVersion (audit N-20).
+  tag: "0.163.2"
 config:
   receivers:
     otlp:

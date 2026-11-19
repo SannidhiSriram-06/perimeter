@@ -1,0 +1,6 @@
+apiVersion: v2
+name: perimeter
+description: Perimeter BFF, correlation engine and a dev PostgreSQL for a local Kubernetes cluster (Minikube)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
