@@ -30,6 +30,8 @@ spec:
       labels:
         app: perimeter-postgres
     spec:
+      # None of these pods call the Kubernetes API.
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 70

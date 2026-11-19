@@ -11,8 +11,8 @@ bff:
   # Number of reverse proxies in front of the BFF (0 if none).
   trustProxy: 0
   resources:
-    requests: { cpu: 50m, memory: 96Mi }
-    limits: { memory: 256Mi }
+    requests: { cpu: 50m, memory: 96Mi, ephemeral-storage: 100Mi }
+    limits: { memory: 256Mi, ephemeral-storage: 500Mi }
 
 engine:
   image: perimeter/engine:dev
@@ -20,8 +20,8 @@ engine:
   port: 8000
   llmModel: openai/gpt-oss-120b
   resources:
-    requests: { cpu: 100m, memory: 128Mi }
-    limits: { memory: 384Mi }
+    requests: { cpu: 100m, memory: 128Mi, ephemeral-storage: 100Mi }
+    limits: { memory: 384Mi, ephemeral-storage: 500Mi }
 
 postgres:
   image: postgres:16-alpine
@@ -29,8 +29,8 @@ postgres:
   database: perimeter_db
   storage: 1Gi
   resources:
-    requests: { cpu: 50m, memory: 128Mi }
-    limits: { memory: 256Mi }
+    requests: { cpu: 50m, memory: 128Mi, ephemeral-storage: 100Mi }
+    limits: { memory: 256Mi, ephemeral-storage: 500Mi }
 
 # Objects up.sh creates before installing the chart. The chart only references them, so no secret is in git.
 secrets:

@@ -29,6 +29,8 @@ spec:
       labels:
         app: perimeter-bff
     spec:
+      # None of these pods call the Kubernetes API.
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000

@@ -28,6 +28,8 @@ spec:
       labels:
         app: perimeter-engine
     spec:
+      # None of these pods call the Kubernetes API.
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         # The image's user is named, and Kubernetes can only verify a numeric one.
