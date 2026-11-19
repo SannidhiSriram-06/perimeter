@@ -7,3 +7,5 @@ label { display: grid; gap: 4px; font-size: 14px; }
 input { padding: 8px; font-size: 16px; }
 button { padding: 8px 12px; font-size: 14px; cursor: pointer; }
 .error { color: #b42318; margin: 0; }
+textarea { padding: 8px; font-size: 14px; font-family: inherit; }
+.flags { color: #92400e; margin: 4px 0 0; padding-left: 18px; font-size: 13px; }
