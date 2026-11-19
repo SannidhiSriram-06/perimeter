@@ -1,18 +1,18 @@
 import React from 'react';
 
 export interface EmptyStateProps {
-  title?: string;
-  subtitle?: string;
-  monitoredServices?: string;
-  servicesStatus?: string;
-  firingAlerts?: number | string;
-  alertsStatus?: string;
-  traceCorrelation?: string;
-  engineStatus?: string;
-  routerOnCall?: string;
-  teamsCovered?: string;
-  roleContext?: string;
-  children?: React.ReactNode;
+  readonly title?: string;
+  readonly subtitle?: string;
+  readonly monitoredServices?: string;
+  readonly servicesStatus?: string;
+  readonly firingAlerts?: number | string;
+  readonly alertsStatus?: string;
+  readonly traceCorrelation?: string;
+  readonly engineStatus?: string;
+  readonly routerOnCall?: string;
+  readonly teamsCovered?: string;
+  readonly roleContext?: string;
+  readonly children?: React.ReactNode;
 }
 
 /**
@@ -32,12 +32,12 @@ export default function EmptyState({
   teamsCovered = '2 Teams Covered',
   roleContext = 'Admins see system-wide health (6 services); Team members see their scoped services.',
   children,
-}: EmptyStateProps) {
+}: Readonly<EmptyStateProps>) {
   return (
-    <article
-      role="status"
+    <output
       aria-label={title}
       style={{
+        display: 'block',
         background: '#1e293b',
         color: '#f8fafc',
         borderRadius: '8px',
@@ -195,6 +195,6 @@ export default function EmptyState({
 
       {/* Action Controls Slot */}
       {children && <div style={{ marginTop: '16px' }}>{children}</div>}
-    </article>
+    </output>
   );
 }

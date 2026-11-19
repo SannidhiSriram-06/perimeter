@@ -25,7 +25,7 @@ The test bed consists of six containerized services partitioned into two enginee
 | `payment-gateway` | Critical | `team-payments` | Authorizes credit card and banking transactions |
 | `bank-network` | Critical | `team-payments` | External core banking simulator / transaction clearing switch |
 | `inventory-service` | High | `team-core-platform` | Stock verification and reservation |
-| `recommendation-engine` | Medium | `team-core-platform` | Generates personalized product recommendations (decoupled) |
+| `recommendation-engine` | Low | `team-core-platform` | Generates personalized product recommendations (decoupled) |
 
 ### Topology Graph
 
