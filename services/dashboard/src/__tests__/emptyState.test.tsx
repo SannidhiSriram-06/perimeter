@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import EmptyState from '../components/EmptyState';
@@ -89,13 +89,13 @@ describe('AdminHome component', () => {
     const nav = screen.getByRole('navigation', { name: 'Admin Navigation' });
     expect(nav).toBeInTheDocument();
 
-    const incidentsLink = screen.getByRole('link', { name: /incidents/i });
+    const incidentsLink = within(nav).getByRole('link', { name: /incidents/i });
     expect(incidentsLink).toHaveAttribute('href', '/admin/incidents');
 
-    const directoryLink = screen.getByRole('link', { name: /team directory & leave/i });
+    const directoryLink = within(nav).getByRole('link', { name: /team directory & leave/i });
     expect(directoryLink).toHaveAttribute('href', '/admin/directory');
 
-    const evaluationLink = screen.getByRole('link', { name: /evaluation results/i });
+    const evaluationLink = within(nav).getByRole('link', { name: /evaluation results/i });
     expect(evaluationLink).toHaveAttribute('href', '/admin/evaluation');
 
     // Nominal state illustration inside AdminHome
