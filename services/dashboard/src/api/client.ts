@@ -35,7 +35,18 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   const res = await fetch(`${BASE_URL}${path}`, { ...init, headers });
   if (res.status === 401 && token) onUnauthorized();
-  if (!res.ok) throw new ApiError(res.status, res.statusText);
+  if (!res.ok) {
+    let msg = res.statusText;
+    try {
+      const data = (await res.json()) as { message?: string };
+      if (data && typeof data.message === 'string') {
+        msg = data.message;
+      }
+    } catch {
+      // Not JSON or empty body
+    }
+    throw new ApiError(res.status, msg);
+  }
   return (await res.json()) as T;
 }
 
