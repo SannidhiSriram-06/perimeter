@@ -429,7 +429,7 @@ metadata:
   labels:
     app: recommendation-engine
     perimeter.io/environment: controlled-test
-    tier: medium
+    tier: low
     owning-team: team-core-platform
 spec:
   replicas: 1
@@ -441,7 +441,7 @@ spec:
       labels:
         app: recommendation-engine
         perimeter.io/environment: controlled-test
-        tier: medium
+        tier: low
         owning-team: team-core-platform
     spec:
       securityContext:
