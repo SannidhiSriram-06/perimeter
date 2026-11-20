@@ -18,21 +18,27 @@ export interface EmptyStateProps {
 /**
  * Reusable nominal / zero-incident empty state component.
  * Implements the design from docs/wireframes/empty-state-view.svg.
+ * When telemetry metrics are supplied as props, displays the health metrics grid;
+ * otherwise displays a clean zero-incident empty state banner.
  */
 export default function EmptyState({
-  title = 'All Systems Operational',
+  title = 'No Active Incidents',
   subtitle = 'Zero active incidents or firing alerts detected across the perimeter.',
-  monitoredServices = '6 / 6',
-  servicesStatus = '100% HEALTHY',
-  firingAlerts = '0',
-  alertsStatus = 'Prometheus Alertmanager',
-  traceCorrelation = 'IDLE',
-  engineStatus = 'Engine Standby',
-  routerOnCall = 'READY',
-  teamsCovered = '2 Teams Covered',
-  roleContext = 'Admins see system-wide health (6 services); Team members see their scoped services.',
+  monitoredServices,
+  servicesStatus,
+  firingAlerts,
+  alertsStatus,
+  traceCorrelation,
+  engineStatus,
+  routerOnCall,
+  teamsCovered,
+  roleContext,
   children,
 }: Readonly<EmptyStateProps>) {
+  const showMetrics = Boolean(
+    monitoredServices || firingAlerts !== undefined || traceCorrelation || routerOnCall
+  );
+
   return (
     <output
       aria-label={title}
@@ -79,99 +85,117 @@ export default function EmptyState({
       <h2 style={{ margin: '0 0 8px 0', fontSize: '22px', fontWeight: 700, color: '#f8fafc' }}>
         {title}
       </h2>
-      <p style={{ margin: '0 0 24px 0', color: '#94a3b8', fontSize: '14px' }}>
+      <p style={{ margin: showMetrics ? '0 0 24px 0' : '0 0 16px 0', color: '#94a3b8', fontSize: '14px' }}>
         {subtitle}
       </p>
 
-      {/* Live Health Metrics Grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-          gap: '12px',
-          marginBottom: '20px',
-        }}
-      >
-        {/* Monitored Services */}
+      {/* Live Health Metrics Grid (rendered only when metric props are passed) */}
+      {showMetrics && (
         <div
           style={{
-            background: '#0f172a',
-            border: '1px solid #334155',
-            borderRadius: '6px',
-            padding: '12px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+            gap: '12px',
+            marginBottom: '20px',
           }}
         >
-          <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600, marginBottom: '6px' }}>
-            MONITORED SERVICES
-          </div>
-          <div style={{ fontSize: '20px', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
-            {monitoredServices}
-          </div>
-          <div style={{ fontSize: '10px', color: '#4ade80', fontWeight: 700 }}>
-            {servicesStatus}
-          </div>
-        </div>
+          {/* Monitored Services */}
+          {monitoredServices && (
+            <div
+              style={{
+                background: '#0f172a',
+                border: '1px solid #334155',
+                borderRadius: '6px',
+                padding: '12px',
+              }}
+            >
+              <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600, marginBottom: '6px' }}>
+                MONITORED SERVICES
+              </div>
+              <div style={{ fontSize: '20px', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
+                {monitoredServices}
+              </div>
+              {servicesStatus && (
+                <div style={{ fontSize: '10px', color: '#4ade80', fontWeight: 700 }}>
+                  {servicesStatus}
+                </div>
+              )}
+            </div>
+          )}
 
-        {/* Firing Alerts */}
-        <div
-          style={{
-            background: '#0f172a',
-            border: '1px solid #334155',
-            borderRadius: '6px',
-            padding: '12px',
-          }}
-        >
-          <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600, marginBottom: '6px' }}>
-            FIRING ALERTS
-          </div>
-          <div style={{ fontSize: '20px', fontWeight: 700, color: '#4ade80', marginBottom: '4px' }}>
-            {firingAlerts}
-          </div>
-          <div style={{ fontSize: '10px', color: '#94a3b8' }}>
-            {alertsStatus}
-          </div>
-        </div>
+          {/* Firing Alerts */}
+          {firingAlerts !== undefined && (
+            <div
+              style={{
+                background: '#0f172a',
+                border: '1px solid #334155',
+                borderRadius: '6px',
+                padding: '12px',
+              }}
+            >
+              <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600, marginBottom: '6px' }}>
+                FIRING ALERTS
+              </div>
+              <div style={{ fontSize: '20px', fontWeight: 700, color: '#4ade80', marginBottom: '4px' }}>
+                {firingAlerts}
+              </div>
+              {alertsStatus && (
+                <div style={{ fontSize: '10px', color: '#94a3b8' }}>
+                  {alertsStatus}
+                </div>
+              )}
+            </div>
+          )}
 
-        {/* Trace Correlation */}
-        <div
-          style={{
-            background: '#0f172a',
-            border: '1px solid #334155',
-            borderRadius: '6px',
-            padding: '12px',
-          }}
-        >
-          <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600, marginBottom: '6px' }}>
-            TRACE CORRELATION
-          </div>
-          <div style={{ fontSize: '20px', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
-            {traceCorrelation}
-          </div>
-          <div style={{ fontSize: '10px', color: '#4ade80', fontWeight: 700 }}>
-            {engineStatus}
-          </div>
-        </div>
+          {/* Trace Correlation */}
+          {traceCorrelation && (
+            <div
+              style={{
+                background: '#0f172a',
+                border: '1px solid #334155',
+                borderRadius: '6px',
+                padding: '12px',
+              }}
+            >
+              <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600, marginBottom: '6px' }}>
+                TRACE CORRELATION
+              </div>
+              <div style={{ fontSize: '20px', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
+                {traceCorrelation}
+              </div>
+              {engineStatus && (
+                <div style={{ fontSize: '10px', color: '#4ade80', fontWeight: 700 }}>
+                  {engineStatus}
+                </div>
+              )}
+            </div>
+          )}
 
-        {/* Router & On-Call */}
-        <div
-          style={{
-            background: '#0f172a',
-            border: '1px solid #334155',
-            borderRadius: '6px',
-            padding: '12px',
-          }}
-        >
-          <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600, marginBottom: '6px' }}>
-            ROUTER & ON-CALL
-          </div>
-          <div style={{ fontSize: '20px', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
-            {routerOnCall}
-          </div>
-          <div style={{ fontSize: '10px', color: '#94a3b8' }}>
-            {teamsCovered}
-          </div>
+          {/* Router & On-Call */}
+          {routerOnCall && (
+            <div
+              style={{
+                background: '#0f172a',
+                border: '1px solid #334155',
+                borderRadius: '6px',
+                padding: '12px',
+              }}
+            >
+              <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600, marginBottom: '6px' }}>
+                ROUTER & ON-CALL
+              </div>
+              <div style={{ fontSize: '20px', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
+                {routerOnCall}
+              </div>
+              {teamsCovered && (
+                <div style={{ fontSize: '10px', color: '#94a3b8' }}>
+                  {teamsCovered}
+                </div>
+              )}
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       {/* Role Context Pill */}
       {roleContext && (

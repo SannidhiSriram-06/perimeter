@@ -77,8 +77,11 @@ export default function AdminHome() {
         </Link>
       </nav>
 
-      {/* Nominal System State Illustration */}
-      <EmptyState>
+      {/* Nominal / Zero-Incident Empty State Illustration */}
+      <EmptyState
+        title="No Active Incidents"
+        subtitle="Zero active incidents or firing alerts detected across the perimeter."
+      >
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link
             to="/admin/incidents"
@@ -93,7 +96,7 @@ export default function AdminHome() {
               boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
             }}
           >
-            View Resolved Incidents
+            View incidents
           </Link>
           <Link
             to="/admin/evaluation"
@@ -108,7 +111,7 @@ export default function AdminHome() {
               fontSize: '13px',
             }}
           >
-            Run Chaos Scenario
+            View evaluation results
           </Link>
         </div>
       </EmptyState>

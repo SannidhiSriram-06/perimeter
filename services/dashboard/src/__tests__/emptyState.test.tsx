@@ -5,18 +5,47 @@ import EmptyState from '../components/EmptyState';
 import AdminHome from '../pages/AdminHome';
 
 describe('EmptyState component', () => {
-  it('renders default nominal status and metrics', () => {
+  it('renders clean zero-incident empty state without fake metrics when metrics props are omitted', () => {
     render(<EmptyState />);
 
-    // Shield status article
-    const statusArticle = screen.getByRole('status', { name: 'All Systems Operational' });
-    expect(statusArticle).toBeInTheDocument();
+    // Output status article
+    const statusOutput = screen.getByRole('status', { name: 'No Active Incidents' });
+    expect(statusOutput).toBeInTheDocument();
 
     // Title and subtitle
-    expect(screen.getByRole('heading', { name: 'All Systems Operational' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'No Active Incidents' })).toBeInTheDocument();
     expect(
       screen.getByText(/zero active incidents or firing alerts detected across the perimeter/i)
     ).toBeInTheDocument();
+
+    // Metrics grid is NOT rendered when telemetry props are not provided
+    expect(screen.queryByText('MONITORED SERVICES')).not.toBeInTheDocument();
+    expect(screen.queryByText('FIRING ALERTS')).not.toBeInTheDocument();
+    expect(screen.queryByText('TRACE CORRELATION')).not.toBeInTheDocument();
+    expect(screen.queryByText('ROUTER & ON-CALL')).not.toBeInTheDocument();
+  });
+
+  it('renders metrics grid and role context when props are provided', () => {
+    render(
+      <EmptyState
+        title="All Systems Operational"
+        subtitle="Zero active incidents or firing alerts detected across the perimeter."
+        monitoredServices="6 / 6"
+        servicesStatus="100% HEALTHY"
+        firingAlerts="0"
+        alertsStatus="Prometheus Alertmanager"
+        traceCorrelation="IDLE"
+        engineStatus="Engine Standby"
+        routerOnCall="READY"
+        teamsCovered="2 Teams Covered"
+        roleContext="Admins see system-wide health (6 services); Team members see their scoped services."
+      >
+        <button type="button">Refresh Health</button>
+      </EmptyState>
+    );
+
+    // Title & Subtitle
+    expect(screen.getByRole('heading', { name: 'All Systems Operational' })).toBeInTheDocument();
 
     // 4 Live Health Metrics Grid
     expect(screen.getByText('MONITORED SERVICES')).toBeInTheDocument();
@@ -39,40 +68,12 @@ describe('EmptyState component', () => {
     expect(screen.getByRole('note')).toHaveTextContent(
       'Admins see system-wide health (6 services); Team members see their scoped services.'
     );
-  });
-
-  it('renders custom metrics and text when props are provided', () => {
-    render(
-      <EmptyState
-        title="Scoped Team Status"
-        subtitle="No alerts affecting your team's assigned services."
-        monitoredServices="3 / 3"
-        servicesStatus="TEAM SCOPED HEALTHY"
-        firingAlerts="0"
-        alertsStatus="Alertmanager Scoped"
-        traceCorrelation="IDLE"
-        engineStatus="No Active Anomalies"
-        routerOnCall="ON CALL: Alice"
-        teamsCovered="Checkout & Payment"
-        roleContext="Team members see their scoped services."
-      >
-        <button type="button">Refresh Health</button>
-      </EmptyState>
-    );
-
-    expect(screen.getByRole('heading', { name: 'Scoped Team Status' })).toBeInTheDocument();
-    expect(screen.getByText("No alerts affecting your team's assigned services.")).toBeInTheDocument();
-    expect(screen.getByText('3 / 3')).toBeInTheDocument();
-    expect(screen.getByText('TEAM SCOPED HEALTHY')).toBeInTheDocument();
-    expect(screen.getByText('ON CALL: Alice')).toBeInTheDocument();
-    expect(screen.getByText('Checkout & Payment')).toBeInTheDocument();
-    expect(screen.getByRole('note')).toHaveTextContent('Team members see their scoped services.');
     expect(screen.getByRole('button', { name: 'Refresh Health' })).toBeInTheDocument();
   });
 });
 
 describe('AdminHome component', () => {
-  it('renders admin heading, navigation links and empty state', () => {
+  it('renders admin heading, navigation links and zero-incident empty state', () => {
     render(
       <MemoryRouter>
         <AdminHome />
@@ -99,12 +100,12 @@ describe('AdminHome component', () => {
     expect(evaluationLink).toHaveAttribute('href', '/admin/evaluation');
 
     // Nominal state illustration inside AdminHome
-    expect(screen.getByText('All Systems Operational')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /view resolved incidents/i })).toHaveAttribute(
+    expect(screen.getByText('No Active Incidents')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /view incidents/i })).toHaveAttribute(
       'href',
       '/admin/incidents'
     );
-    expect(screen.getByRole('link', { name: /run chaos scenario/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /view evaluation results/i })).toHaveAttribute(
       'href',
       '/admin/evaluation'
     );
