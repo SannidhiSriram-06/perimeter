@@ -96,7 +96,7 @@ describe('AdminHome component', () => {
     const directoryLink = within(nav).getByRole('link', { name: /team directory & leave/i });
     expect(directoryLink).toHaveAttribute('href', '/admin/directory');
 
-    const evaluationLink = within(nav).getByRole('link', { name: /evaluation results/i });
+    const evaluationLink = within(nav).getByRole('link', { name: /evaluation & benchmark/i });
     expect(evaluationLink).toHaveAttribute('href', '/admin/evaluation');
 
     // Nominal state illustration inside AdminHome
