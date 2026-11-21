@@ -120,7 +120,7 @@ HARNESS SUMMARY: 2/2 Scenarios Passed
     Passed:    True (threshold: 0.8)
 ```
 
-Generated results are saved to:
+Generated dry-run benchmark output files are produced locally upon test execution under `evaluation/benchmark/results/` (excluded from git tracking per repository `.gitignore` policy):
 * `evaluation/benchmark/results/chaos_result_chaos-sc-01-payment-gateway-upstream.json`
 * `evaluation/benchmark/results/chaos_result_chaos-sc-01-payment-gateway-both.json`
 * `evaluation/benchmark/results/chaos_run_dryrun_summary.json`
