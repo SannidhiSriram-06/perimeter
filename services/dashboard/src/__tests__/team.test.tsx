@@ -63,13 +63,13 @@ const sampleIncidents = {
             {
               id: 'c1',
               type: 'causal_edge',
-              text: 'payment-gateway calls bank-network',
+              text: 'unverified model text 1',
               evidence_ids: ['edge-2'],
             },
             {
               id: 'c2',
               type: 'timestamp',
-              text: 'Latency degradation initiated at 15:42:00 UTC',
+              text: 'unverified model text 2',
               evidence_ids: ['log-bn-01'],
             },
           ],
@@ -81,10 +81,22 @@ const sampleIncidents = {
           },
         },
         validation: {
-          claims: {
-            c1: { supported: true },
-            c2: { supported: false, reason: 'Timestamp outside 15m alert window' },
-          },
+          claims: [
+            {
+              id: 'c1',
+              supported: true,
+              reasons: [],
+              rendered_text: 'payment-gateway calls bank-network (verified edge-2)',
+            },
+            {
+              id: 'c2',
+              supported: false,
+              reasons: ['Timestamp outside 15m alert window'],
+              rendered_text: 'Latency degradation initiated at 15:42:00 UTC (log-bn-01)',
+            },
+          ],
+          issues: [],
+          timeline_warnings: [],
         },
       }),
       created_at: '2026-11-13T10:00:00.000Z',
@@ -108,7 +120,7 @@ const sampleIncidents = {
           },
           claims: [],
         },
-        validation: { claims: {} },
+        validation: { claims: [] },
       }),
       created_at: '2026-11-13T09:30:00.000Z',
     },
@@ -189,7 +201,6 @@ describe('TeamPage (/team)', () => {
     renderTeamPage();
 
     expect(await screen.findByText('Blast Radius (3 services)')).toBeInTheDocument();
-    // Services in blast radius are rendered
     expect(screen.getAllByText('checkout-service').length).toBeGreaterThan(0);
     expect(screen.getAllByText('payment-gateway').length).toBeGreaterThan(0);
     expect(screen.getAllByText('bank-network').length).toBeGreaterThan(0);
@@ -208,7 +219,7 @@ describe('TeamPage (/team)', () => {
     expect(screen.getByText('✓ DRAFT OK')).toBeInTheDocument();
   });
 
-  it('6. Unsupported claims are displayed and clearly marked', async () => {
+  it('6. Unsupported claims show rendered_text from validation and reason', async () => {
     fetchMock.mockImplementation((url: string) => {
       if (url.includes('/api/v1/services')) return jsonResponse(200, sampleServices);
       if (url.includes('/api/v1/incidents')) return jsonResponse(200, sampleIncidents);
@@ -217,13 +228,18 @@ describe('TeamPage (/team)', () => {
 
     renderTeamPage();
 
-    expect(await screen.findByText('✗ UNSUPPORTED')).toBeInTheDocument();
+    // Audit N-04: Show rendered_text from validation result, not model text
+    expect(await screen.findByText('payment-gateway calls bank-network (verified edge-2)')).toBeInTheDocument();
+    expect(screen.getByText('Latency degradation initiated at 15:42:00 UTC (log-bn-01)')).toBeInTheDocument();
+    expect(screen.queryByText('unverified model text 1')).not.toBeInTheDocument();
+
+    expect(screen.getByText('✗ UNSUPPORTED')).toBeInTheDocument();
     expect(screen.getByText(/Timestamp outside 15m alert window/)).toBeInTheDocument();
     expect(screen.getByText('✓ SUPPORTED')).toBeInTheDocument();
   });
 
   it('7. Loading state', async () => {
-    fetchMock.mockImplementation(() => new Promise(() => {})); // Never resolves
+    fetchMock.mockImplementation(() => new Promise(() => {}));
 
     renderTeamPage();
 
@@ -277,13 +293,10 @@ describe('TeamPage (/team)', () => {
 
     await screen.findByTestId('service-card-checkout-service');
 
-    // No inputs or textareas for editing
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
-    // No edit or finalize buttons
     expect(screen.queryByRole('button', { name: /edit/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /finalize/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /mark as final/i })).not.toBeInTheDocument();
-    // Read-only indicator is present
     expect(screen.getByText('🔒 Read-Only')).toBeInTheDocument();
   });
 });

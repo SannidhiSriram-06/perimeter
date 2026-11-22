@@ -1,4 +1,5 @@
 import { api } from './client';
+import { ClaimResult, DraftBody, Hypothesis, Incident, Postmortem, Validation } from './incidents';
 
 export interface ServiceItem {
   id: string;
@@ -11,129 +12,88 @@ export interface ServicesResponse {
   services: ServiceItem[];
 }
 
-export interface ClaimItem {
+export interface ValidatedClaim {
   id: string;
   type: string;
-  text: string;
-  evidence_ids?: string[];
-  service?: string;
-  source?: string;
-  target?: string;
-  value?: number;
-  unit?: string;
-  status_code?: number;
-  timestamp?: string;
-}
-
-export interface HypothesisData {
-  summary?: string;
-  root_cause_service?: string;
-  cascade_path?: string[];
-  confidence?: 'low' | 'medium' | 'high';
-}
-
-export interface PostmortemData {
-  summary?: string;
-  impact?: string;
-  contributing_factors?: string[];
-  next_steps?: string[];
-  timeline?: Array<{ time: string; event: string; claim_ids?: string[] }>;
-}
-
-export interface IncidentItem {
-  id: string;
-  title: string;
-  status: string;
-  alert_service_id: string | null;
-  blast_radius: string[];
-  root_cause_draft: string | null;
-  reviewed_draft?: unknown;
-  reviewed_by?: string | null;
-  reviewed_at?: string | null;
-  finalized_at?: string | null;
-  created_at: string;
-  service_name: string | null;
-  owning_team_id: string | null;
-}
-
-export interface IncidentsResponse {
-  incidents: IncidentItem[];
-}
-
-export interface ClaimValidationInfo {
-  claim: ClaimItem;
+  rendered_text: string;
   supported: boolean;
-  reason?: string;
+  reasons: string[];
+  evidence_ids?: string[];
 }
 
 export interface ParsedIncidentDraft {
   status: 'ok' | 'flagged' | 'none';
-  hypothesis?: HypothesisData;
-  claims: ClaimValidationInfo[];
-  postmortem?: PostmortemData;
+  hypothesis?: Hypothesis;
+  claims: ValidatedClaim[];
+  postmortem?: Postmortem;
 }
 
-export function parseIncidentDraft(incident: IncidentItem): ParsedIncidentDraft {
+export function parseIncidentDraft(incident: Incident): ParsedIncidentDraft {
   let draftStatus: 'ok' | 'flagged' | 'none' = 'none';
-  let hypothesis: HypothesisData | undefined;
-  let postmortem: PostmortemData | undefined;
-  const claims: ClaimValidationInfo[] = [];
+  let modelDraft: DraftBody | null = null;
+  let validationObj: Validation | null = null;
 
-  // Parse original root_cause_draft if present
-  let originalDraftObj: any = null;
-  let validationObj: any = null;
   if (incident.root_cause_draft) {
     try {
-      const parsed = typeof incident.root_cause_draft === 'string'
-        ? JSON.parse(incident.root_cause_draft)
-        : incident.root_cause_draft;
-
+      const parsed = JSON.parse(incident.root_cause_draft) as {
+        status?: string;
+        draft?: DraftBody;
+        validation?: Validation;
+      };
       if (parsed.status === 'ok' || parsed.status === 'flagged') {
         draftStatus = parsed.status;
       }
-      originalDraftObj = parsed.draft ?? parsed;
+      modelDraft = parsed.draft ?? null;
       validationObj = parsed.validation ?? null;
     } catch {
       // unparseable draft text
     }
   }
 
-  // Parse reviewed_draft if present
-  let reviewedDraftObj: any = null;
-  if (incident.reviewed_draft) {
-    try {
-      reviewedDraftObj = typeof incident.reviewed_draft === 'string'
-        ? JSON.parse(incident.reviewed_draft)
-        : incident.reviewed_draft;
-    } catch {
-      // unparseable reviewed draft
-    }
-  }
+  const reviewed = incident.reviewed_draft ?? null;
+  const hypothesis = reviewed?.hypothesis ?? modelDraft?.hypothesis;
+  const postmortem = reviewed?.postmortem ?? modelDraft?.postmortem;
 
-  // Base data comes from original AI draft, then merged with reviewed draft
-  const activeDraft = { ...(originalDraftObj || {}), ...(reviewedDraftObj || {}) };
+  // Build lookup from the validation claims array (audit N-04)
+  const validationClaims: ClaimResult[] = Array.isArray(validationObj?.claims)
+    ? validationObj.claims
+    : [];
+  const claimValidationMap: Record<string, ClaimResult> = Object.fromEntries(
+    validationClaims.map((c) => [c.id, c])
+  );
 
-  if (activeDraft.hypothesis) {
-    hypothesis = activeDraft.hypothesis;
-  }
+  const rawClaims: Array<{ id: string; type?: string; text?: string; evidence_ids?: string[] }> =
+    (modelDraft as { claims?: Array<{ id: string; type?: string; text?: string; evidence_ids?: string[] }> })?.claims ||
+    validationClaims.map((c) => ({ id: c.id, text: c.rendered_text }));
 
-  if (activeDraft.postmortem) {
-    postmortem = activeDraft.postmortem;
-  }
-
-  // Extract claims and map validation status
-  const rawClaims: ClaimItem[] = originalDraftObj?.claims || activeDraft.claims || [];
-  const claimValidationMap: Record<string, { supported?: boolean; reason?: string }> =
-    validationObj?.claims || {};
+  const claims: ValidatedClaim[] = [];
+  const seenIds = new Set<string>();
 
   for (const c of rawClaims) {
+    seenIds.add(c.id);
     const val = claimValidationMap[c.id];
-    const isSupported = val?.supported !== false;
     claims.push({
-      claim: c,
-      supported: isSupported,
-      reason: val?.reason,
+      id: c.id,
+      type: c.type || 'claim',
+      // Show rendered_text from the validation result instead of model text (audit N-04)
+      rendered_text: val?.rendered_text || c.text || '',
+      supported: val ? val.supported : true,
+      reasons: val?.reasons || [],
+      evidence_ids: c.evidence_ids || [],
     });
+  }
+
+  for (const vc of validationClaims) {
+    if (!seenIds.has(vc.id)) {
+      claims.push({
+        id: vc.id,
+        type: 'claim',
+        rendered_text: vc.rendered_text,
+        supported: vc.supported,
+        reasons: vc.reasons || [],
+        evidence_ids: [],
+      });
+    }
   }
 
   return {
@@ -148,6 +108,6 @@ export function fetchTeamServices(): Promise<ServicesResponse> {
   return api<ServicesResponse>('/api/v1/services');
 }
 
-export function fetchTeamIncidents(): Promise<IncidentsResponse> {
-  return api<IncidentsResponse>('/api/v1/incidents');
+export function fetchTeamIncidents(): Promise<{ incidents: Incident[] }> {
+  return api<{ incidents: Incident[] }>('/api/v1/incidents');
 }
