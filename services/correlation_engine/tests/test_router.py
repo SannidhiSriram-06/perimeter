@@ -341,3 +341,213 @@ def test_api_route_validation_error(client: TestClient):
     """POST /route validates input and returns 422 for missing required fields."""
     response = client.post("/route", json={})
     assert response.status_code == 422
+
+
+def test_level_2_core_platform_fallback_telegram_and_scoring():
+    """Verify Item 3: Core Platform fallback filters out members without Telegram
+
+    and selects the highest-scoring eligible on-call senior.
+    """
+    members = [
+        # Primary team has only junior
+        TeamMember(
+            user_id="101",
+            team_id="team-payments",
+            name="Junior Jim",
+            seniority="junior",
+            skills=["payments"],
+            telegram_chat_id="chat_101",
+            is_on_leave=False,
+            on_call_status=True,
+        ),
+        # Core platform senior with NO telegram chat id (must be excluded)
+        TeamMember(
+            user_id="201",
+            team_id="team-core-platform",
+            name="CP No Telegram",
+            seniority="lead",
+            skills=["kubernetes", "payments"],
+            telegram_chat_id=None,
+            is_on_leave=False,
+            on_call_status=True,
+        ),
+        # Core platform senior with low score
+        TeamMember(
+            user_id="202",
+            team_id="team-core-platform",
+            name="CP Low Score",
+            seniority="senior",
+            skills=[],
+            telegram_chat_id="chat_202",
+            is_on_leave=False,
+            on_call_status=True,
+        ),
+        # Core platform senior with high score
+        TeamMember(
+            user_id="203",
+            team_id="team-core-platform",
+            name="CP High Score",
+            seniority="lead",
+            skills=["payments", "distributed-systems"],
+            telegram_chat_id="chat_203",
+            is_on_leave=False,
+            on_call_status=True,
+        ),
+    ]
+
+    report = route_incident(
+        alert_service_id="checkout-service",
+        blast_radius=["checkout-service", "frontend-proxy"],
+        required_skills=["payments", "distributed-systems"],
+        members=members,
+    )
+
+    assert report.fallback_level == 2
+    assert report.primary_responder is not None
+    assert report.primary_responder.user_id == "203"
+    assert report.primary_responder.name == "CP High Score"
+    assert report.primary_responder.telegram_chat_id == "chat_203"
+    assert report.secondary_responder is not None
+    assert report.secondary_responder.user_id == "101"
+
+
+def test_level_1_secondary_seniors_only_fallback():
+    """Verify Item 4: When primary team has no eligible responders and secondary
+
+    team has only seniors (no juniors), secondary seniors co-triage at Level 1
+    instead of escalating to admin.
+    """
+    members = [
+        # Primary team members all on leave
+        TeamMember(
+            user_id="101",
+            team_id="team-payments",
+            name="Dave On Leave",
+            seniority="mid",
+            skills=["payments"],
+            telegram_chat_id="chat_101",
+            is_on_leave=True,
+            on_call_status=True,
+        ),
+        # Secondary team has two seniors and NO juniors
+        TeamMember(
+            user_id="301",
+            team_id="team-core-platform",
+            name="Secondary Senior One",
+            seniority="lead",
+            skills=["kubernetes"],
+            telegram_chat_id="chat_301",
+            is_on_leave=False,
+            on_call_status=True,
+        ),
+        TeamMember(
+            user_id="302",
+            team_id="team-core-platform",
+            name="Secondary Senior Two",
+            seniority="senior",
+            skills=["terraform"],
+            telegram_chat_id="chat_302",
+            is_on_leave=False,
+            on_call_status=False,
+        ),
+    ]
+
+    report = route_incident(
+        alert_service_id="checkout-service",
+        blast_radius=["checkout-service", "frontend-proxy"],
+        members=members,
+    )
+
+    assert report.fallback_level == 1
+    assert report.primary_responder is not None
+    assert report.primary_responder.user_id == "301"
+    assert report.secondary_responder is not None
+    assert report.secondary_responder.user_id == "302"
+    assert "Dispatched secondary team seniors co-triaging" in report.reasoning
+
+
+def test_single_primary_senior_always_dispatches_two():
+    """Verify Item 5: When exactly one primary senior exists and no other
+
+    responders exist anywhere, two responders are always dispatched by falling
+    back to Admin as the secondary responder.
+    """
+    members = [
+        TeamMember(
+            user_id="101",
+            team_id="team-payments",
+            name="Lone Senior",
+            seniority="senior",
+            skills=["payments"],
+            telegram_chat_id="chat_101",
+            is_on_leave=False,
+            on_call_status=True,
+        ),
+    ]
+
+    report = route_incident(
+        alert_service_id="checkout-service",
+        blast_radius=["checkout-service"],
+        members=members,
+    )
+
+    assert report.fallback_level == 3
+    assert report.primary_responder is not None
+    assert report.primary_responder.user_id == "101"
+    assert report.primary_responder.name == "Lone Senior"
+    assert report.secondary_responder is not None
+    assert report.secondary_responder.user_id == "10001"
+    assert report.secondary_responder.role == "Secondary Responder (Emergency Admin Escalation)"
+
+
+def test_member_keyed_by_user_id_and_team_id():
+    """Verify Item 6: Same user_id in multiple teams is correctly keyed and looked up
+
+    by (user_id, team_id).
+    """
+    members = [
+        TeamMember(
+            user_id="50001",
+            team_id="team-payments",
+            name="Multi Team Alice",
+            seniority="lead",
+            skills=["payments"],
+            telegram_chat_id="chat_payments_alice",
+            is_on_leave=False,
+            on_call_status=True,
+        ),
+        TeamMember(
+            user_id="50001",
+            team_id="team-core-platform",
+            name="Multi Team Alice (Platform)",
+            seniority="mid",
+            skills=["kubernetes"],
+            telegram_chat_id="chat_platform_alice",
+            is_on_leave=False,
+            on_call_status=False,
+        ),
+        TeamMember(
+            user_id="50002",
+            team_id="team-payments",
+            name="Bob Junior",
+            seniority="junior",
+            skills=["payments"],
+            telegram_chat_id="chat_bob",
+            is_on_leave=False,
+            on_call_status=True,
+        ),
+    ]
+
+    report = route_incident(
+        alert_service_id="checkout-service",
+        blast_radius=["checkout-service"],
+        members=members,
+    )
+
+    assert report.primary_responder is not None
+    assert report.primary_responder.user_id == "50001"
+    assert report.primary_responder.team_id == "team-payments"
+    assert report.primary_responder.telegram_chat_id == "chat_payments_alice"
+    assert report.secondary_responder is not None
+    assert report.secondary_responder.user_id == "50002"
+
