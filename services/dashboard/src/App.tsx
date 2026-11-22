@@ -7,7 +7,7 @@ import AdminHome from './pages/AdminHome';
 import DirectoryPage from './pages/admin/DirectoryPage';
 import EvaluationPage from './pages/admin/EvaluationPage';
 import ReviewPage from './pages/admin/ReviewPage';
-import TeamHome from './pages/TeamHome';
+import TeamPage from './pages/team/TeamPage';
 
 function Index() {
   const auth = useAuth();
@@ -27,7 +27,7 @@ export default function App() {
           <Route path="/admin/incidents/:id/review" element={<ReviewPage />} />
         </Route>
         <Route element={<RequireRole role="team_member" />}>
-          <Route path="/team" element={<TeamHome />} />
+          <Route path="/team" element={<TeamPage />} />
         </Route>
         <Route path="*" element={<Index />} />
       </Route>
