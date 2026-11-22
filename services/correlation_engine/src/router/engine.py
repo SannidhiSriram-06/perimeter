@@ -25,13 +25,14 @@ def _to_responder(
     """Creates a Responder instance from a CandidateScore and member directory."""
     member = member_by_id.get((candidate.user_id, candidate.team_id))
     chat_id = member.telegram_chat_id if member is not None else None
+    score = candidate.total_score if candidate.total_score > 0.0 else round(0.5 * candidate.raw_score, 1)
     return Responder(
         user_id=candidate.user_id,
         name=candidate.name,
         team_id=candidate.team_id,
         role=role,
         seniority=candidate.seniority,
-        score=candidate.total_score,
+        score=score,
         telegram_chat_id=chat_id,
     )
 
@@ -107,13 +108,12 @@ def _evaluate_candidate(
     seniority_score = compute_seniority_score(m.seniority)
     skill_score, matched = compute_skill_score(m.skills, domain_skills)
 
+    raw_score, total_score = compute_composite_score(
+        avail_score, seniority_score, skill_score, team_multiplier
+    )
+
     if excluded_reason is not None:
-        raw_score = 0.0
         total_score = 0.0
-    else:
-        raw_score, total_score = compute_composite_score(
-            avail_score, seniority_score, skill_score, team_multiplier
-        )
 
     return CandidateScore(
         user_id=m.user_id,

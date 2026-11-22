@@ -397,7 +397,7 @@ def test_level_2_core_platform_fallback_telegram_and_scoring():
 
     report = route_incident(
         alert_service_id="checkout-service",
-        blast_radius=["checkout-service", "frontend-proxy"],
+        blast_radius=["checkout-service"],
         required_skills=["payments", "distributed-systems"],
         members=members,
     )
