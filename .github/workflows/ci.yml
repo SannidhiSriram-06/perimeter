@@ -2,7 +2,10 @@ name: CI
 
 # Trunk-based flow: every change is a pull request into main.
 #   pull_request -> unit tests, lint and image builds must pass before merge.
-#   push to main -> the same checks plus the integration job, which starts the real stack.
+#   push to main -> every job runs, regardless of which files changed.
+# Pull requests only run the jobs whose files changed (see the "changes" job). The "CI gate" job at the
+# bottom is the single required check: it fails if any job failed or was cancelled, and it only accepts
+# "skipped" for jobs that the path filter deliberately left out.
 on:
   push:
     branches: [main]
@@ -18,8 +21,68 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Decides which jobs a pull request needs. On push to main every flag is true, so main always runs everything.
+  changes:
+    name: Detect changed paths
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      engine: ${{ steps.out.outputs.engine }}
+      bff: ${{ steps.out.outputs.bff }}
+      dashboard: ${{ steps.out.outputs.dashboard }}
+      test-services: ${{ steps.out.outputs.test-services }}
+      stack: ${{ steps.out.outputs.stack }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        if: github.event_name == 'pull_request'
+        with:
+          filters: |
+            engine:
+              - 'services/correlation_engine/**'
+              - '.github/workflows/ci.yml'
+            bff:
+              - 'services/bff-server/**'
+              - 'deploy/db/**'
+              - '.github/workflows/ci.yml'
+            dashboard:
+              - 'services/dashboard/**'
+              - '.github/workflows/ci.yml'
+            test-services:
+              - 'services/test-services/**'
+              - '.github/workflows/ci.yml'
+            stack:
+              - 'services/**'
+              - 'deploy/**'
+              - 'scripts/**'
+              - '.env.example'
+              - '.github/workflows/ci.yml'
+      - id: out
+        env:
+          IS_PR: ${{ github.event_name == 'pull_request' }}
+          ENGINE: ${{ steps.filter.outputs.engine }}
+          BFF: ${{ steps.filter.outputs.bff }}
+          DASHBOARD: ${{ steps.filter.outputs.dashboard }}
+          TEST_SERVICES: ${{ steps.filter.outputs.test-services }}
+          STACK: ${{ steps.filter.outputs.stack }}
+        run: |
+          pick() { if [ "$IS_PR" = "true" ]; then echo "$1"; else echo true; fi; }
+          {
+            echo "engine=$(pick "$ENGINE")"
+            echo "bff=$(pick "$BFF")"
+            echo "dashboard=$(pick "$DASHBOARD")"
+            echo "test-services=$(pick "$TEST_SERVICES")"
+            echo "stack=$(pick "$STACK")"
+          } >> "$GITHUB_OUTPUT"
+
   correlation-engine:
     name: Correlation engine tests
+    needs: changes
+    if: needs.changes.outputs.engine == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -29,11 +92,17 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            services/correlation_engine/requirements.txt
+            services/correlation_engine/requirements-dev.txt
       - run: "pip install --only-binary=:all: -r requirements-dev.txt"
       - run: python -m pytest tests/ -q --cov=src --cov-report=term-missing --cov-fail-under=85
 
   bff-server:
     name: BFF server build
+    needs: changes
+    if: needs.changes.outputs.bff == 'true'
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -93,17 +162,37 @@ jobs:
 
   docker-build:
     name: Docker images build
+    needs: changes
+    if: needs.changes.outputs.stack == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - run: docker build services/bff-server
-      - run: docker build services/correlation_engine
-
-      - run: docker build services/test-services
+      - uses: docker/setup-buildx-action@v3
+      # Only image layers are cached. The build still runs in full, so a broken Dockerfile still fails.
+      - uses: docker/build-push-action@v6
+        with:
+          context: services/bff-server
+          push: false
+          cache-from: type=gha,scope=bff-server
+          cache-to: type=gha,scope=bff-server,mode=max
+      - uses: docker/build-push-action@v6
+        with:
+          context: services/correlation_engine
+          push: false
+          cache-from: type=gha,scope=correlation-engine
+          cache-to: type=gha,scope=correlation-engine,mode=max
+      - uses: docker/build-push-action@v6
+        with:
+          context: services/test-services
+          push: false
+          cache-from: type=gha,scope=test-services
+          cache-to: type=gha,scope=test-services,mode=max
 
   dashboard:
     name: Dashboard tests
+    needs: changes
+    if: needs.changes.outputs.dashboard == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -122,6 +211,8 @@ jobs:
 
   test-services:
     name: Test services tests
+    needs: changes
+    if: needs.changes.outputs.test-services == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -132,15 +223,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: services/test-services/requirements.txt
       - run: "pip install --only-binary=:all: -r requirements.txt pytest"
       - run: python -m pytest tests/ -q
 
-  # Runs only after a merge to main. Builds and starts the real stack (Postgres, engine, BFF),
-  # sends an alert through the webhook and checks that an incident with a blast radius was stored.
+  # Builds and starts the real stack (Postgres, engine, BFF), sends an alert through the webhook and
+  # checks that an incident with a blast radius was stored. Runs on main, and on pull requests that
+  # touch the stack, so a PR cannot be green while the stack is broken.
   integration:
     name: Integration (full stack)
-    if: github.event_name == 'push'
-    needs: [correlation-engine, bff-server, dashboard, test-services, compose-config, lint, docker-build]
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && needs.changes.outputs.stack == 'true' }}
+    needs: [changes, correlation-engine, bff-server, dashboard, test-services, compose-config, lint, docker-build]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -164,3 +258,26 @@ jobs:
       - name: Stop the stack
         if: always()
         run: docker compose --env-file .env -f deploy/docker-compose.yml down -v
+
+  # The one check to require in branch protection. It reports failure if any job failed or was cancelled.
+  # "skipped" is accepted only because the path filter chose not to run that job.
+  ci-gate:
+    name: CI gate
+    if: always()
+    needs: [changes, correlation-engine, bff-server, compose-config, lint, docker-build, dashboard, test-services, integration]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require every job to pass or be deliberately skipped
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "job results: $RESULTS"
+          for r in $RESULTS; do
+            case "$r" in
+              success|skipped) ;;
+              *) echo "a required job ended as: $r"; exit 1 ;;
+            esac
+          done
+          [ "${{ needs.changes.result }}" = "success" ] || { echo "path detection did not succeed"; exit 1; }
+          [ "${{ needs.lint.result }}" = "success" ] || { echo "lint must always run and pass"; exit 1; }
