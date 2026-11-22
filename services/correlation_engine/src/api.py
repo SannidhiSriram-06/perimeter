@@ -14,6 +14,7 @@ from .compressor import DEFAULT_TOKEN_BUDGET, compress
 from .graph import BlastRadiusReport, Direction, ServiceDependencyGraph
 from .llm import GroqClient, LLMClient, generate_draft
 from .mock.fixtures import get_sample_logs, get_sample_metrics, get_sample_trace_spans
+from .router import Service, TeamMember, route_incident
 
 app = FastAPI(title="Perimeter correlation engine")
 
@@ -123,3 +124,87 @@ def draft(request: DraftRequest, client: Annotated[LLMClient, Depends(llm_client
         "validation": dataclasses.asdict(outcome.validation) if outcome.validation else None,
         "error": outcome.error,
     }
+
+
+class ServiceItem(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    id: str = Field(..., min_length=1, max_length=100)
+    name: str = Field(..., min_length=1, max_length=100)
+    owning_team_id: str = Field(..., min_length=1, max_length=100)
+    tier: str = Field(default="medium", max_length=50)
+    skills: Optional[List[str]] = Field(default=None, max_length=50)
+
+
+class TeamMemberItem(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    user_id: str = Field(..., min_length=1, max_length=50)
+    team_id: str = Field(..., min_length=1, max_length=100)
+    name: str = Field(default="", max_length=100)
+    seniority: str = Field(default="mid", max_length=20)
+    skills: Optional[List[str]] = Field(default=None, max_length=50)
+    telegram_chat_id: Optional[str] = Field(default=None, max_length=100)
+    is_on_leave: bool = False
+    on_call_status: bool = False
+
+
+class RouteRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    alert_service_id: str = Field(..., min_length=1, max_length=100, description="Service the alert fired on")
+    blast_radius: Optional[List[str]] = Field(
+        default=None, max_length=MAX_ITEMS, description="Services in the blast radius"
+    )
+    root_cause_service: Optional[str] = Field(default=None, max_length=100)
+    required_skills: Optional[List[str]] = Field(default=None, max_length=50)
+    incident_id: Optional[str] = Field(default=None, max_length=100)
+    services: Optional[List[ServiceItem]] = Field(
+        default=None, max_length=MAX_ITEMS, description="Optional custom service directory"
+    )
+    members: Optional[List[TeamMemberItem]] = Field(
+        default=None, max_length=MAX_ITEMS, description="Optional custom team directory"
+    )
+
+
+@app.post("/route")
+def route(request: RouteRequest) -> Dict[str, Any]:
+    """Scores candidate responders and assigns optimal primary and secondary responders."""
+    custom_services = None
+    if request.services is not None:
+        custom_services = [
+            Service(
+                id=s.id,
+                name=s.name,
+                owning_team_id=s.owning_team_id,
+                tier=s.tier,
+                skills=s.skills or [],
+            )
+            for s in request.services
+        ]
+
+    custom_members = None
+    if request.members is not None:
+        custom_members = [
+            TeamMember(
+                user_id=m.user_id,
+                team_id=m.team_id,
+                name=m.name,
+                seniority=m.seniority if m.seniority in ("junior", "mid", "senior", "lead") else "mid",
+                skills=m.skills or [],
+                telegram_chat_id=m.telegram_chat_id,
+                is_on_leave=m.is_on_leave,
+                on_call_status=m.on_call_status,
+            )
+            for m in request.members
+        ]
+
+    report = route_incident(
+        alert_service_id=request.alert_service_id,
+        blast_radius=request.blast_radius or [],
+        root_cause_service=request.root_cause_service,
+        required_skills=request.required_skills,
+        services=custom_services,
+        members=custom_members,
+        incident_id=request.incident_id,
+    )
+
+    return dataclasses.asdict(report)
+
