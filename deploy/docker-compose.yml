@@ -18,13 +18,32 @@ services:
       timeout: 5s
       retries: 10
 
+  mongo:
+    image: mongo:7.0.18
+    container_name: perimeter-mongo
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - ./mongo/init.js:/docker-entrypoint-initdb.d/init.js:ro
+      - perimeter-mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   correlation-engine:
     build: ../services/correlation_engine
     container_name: perimeter-engine
     restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
     ports:
       - "127.0.0.1:${CORRELATION_ENGINE_PORT:-8000}:8000"
     environment:
+      MONGO_URI: mongodb://mongo:27017/perimeter_events
       # Optional. Without a key the engine still correlates; incidents just get no root-cause draft.
       GROQ_API_KEY: ${GROQ_API_KEY:-}
       PERIMETER_LLM_MODEL: ${PERIMETER_LLM_MODEL:-openai/gpt-oss-120b}
@@ -52,3 +71,4 @@ services:
 
 volumes:
   perimeter-postgres-data:
+  perimeter-mongo-data:
