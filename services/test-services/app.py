@@ -152,6 +152,7 @@ async def frontend_checkout(request: Request) -> Response:
                     media_type="application/json",
                 )
         except Exception as exc:
+            logger.exception("Failed to connect to checkout-service")
             duration_ms = (time.time() - start_time) * 1000.0
             span.set_attribute("duration_ms", duration_ms)
             span.set_attribute("http.status_code", 500)
@@ -160,7 +161,7 @@ async def frontend_checkout(request: Request) -> Response:
             return JSONResponse(
                 status_code=500,
                 content={
-                    "error": f"Failed to connect to checkout-service: {exc}",
+                    "error": "Failed to connect to checkout-service",
                     "service": SERVICE_NAME,
                 },
             )
@@ -261,6 +262,7 @@ async def checkout_process(request: Request) -> Response:
                     media_type="application/json",
                 )
         except Exception as exc:
+            logger.exception("Failed to connect to payment-gateway")
             duration_ms = (time.time() - start_time) * 1000.0
             span.set_attribute("duration_ms", duration_ms)
             span.set_attribute("http.status_code", 500)
@@ -269,7 +271,7 @@ async def checkout_process(request: Request) -> Response:
             return JSONResponse(
                 status_code=500,
                 content={
-                    "error": f"Failed to connect to payment-gateway: {exc}",
+                    "error": "Failed to connect to payment-gateway",
                     "service": SERVICE_NAME,
                 },
             )
@@ -348,6 +350,7 @@ async def payment_charge(request: Request) -> Response:
                 },
             )
         except Exception as exc:
+            logger.exception("Failed to connect to bank-network")
             duration_ms = (time.time() - start_time) * 1000.0
             span.set_attribute("duration_ms", duration_ms)
             span.set_attribute("http.status_code", 500)
@@ -356,7 +359,7 @@ async def payment_charge(request: Request) -> Response:
             return JSONResponse(
                 status_code=500,
                 content={
-                    "error": f"Failed to connect to bank-network: {exc}",
+                    "error": "Failed to connect to bank-network",
                     "service": SERVICE_NAME,
                 },
             )
