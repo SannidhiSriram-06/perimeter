@@ -2,11 +2,185 @@ import { Incident } from '../../api/incidents';
 import { ParsedIncidentDraft, ValidatedClaim } from '../../api/team';
 
 interface IncidentDetailPanelProps {
-  incident: Incident;
-  draft: ParsedIncidentDraft | null;
+  readonly incident: Incident;
+  readonly draft: ParsedIncidentDraft | null;
 }
 
-function ClaimsSection({ claims }: { claims: ValidatedClaim[] }) {
+function getConfidenceStyle(confidence?: string): { background: string; color: string } {
+  if (confidence === 'high') {
+    return { background: '#dcfce7', color: '#166534' };
+  }
+  if (confidence === 'medium') {
+    return { background: '#fef3c7', color: '#92400e' };
+  }
+  return { background: '#f3f4f6', color: '#374151' };
+}
+
+function BlastRadiusSection({ blastRadius }: { readonly blastRadius?: string[] }) {
+  return (
+    <div style={{ marginBottom: '20px' }}>
+      <div style={{ fontSize: '13px', fontWeight: 700, color: '#4b5563', textTransform: 'uppercase', marginBottom: '8px' }}>
+        Blast Radius ({blastRadius?.length || 0} services)
+      </div>
+      {blastRadius && blastRadius.length > 0 ? (
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {blastRadius.map((svcName) => (
+            <span
+              key={svcName}
+              style={{
+                background: '#e0f2fe',
+                color: '#0369a1',
+                border: '1px solid #bae6fd',
+                padding: '4px 10px',
+                borderRadius: '6px',
+                fontSize: '13px',
+                fontWeight: 500,
+              }}
+            >
+              {svcName}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>No blast radius recorded.</p>
+      )}
+    </div>
+  );
+}
+
+function HypothesisSection({ hypothesis }: { readonly hypothesis?: ParsedIncidentDraft['hypothesis'] }) {
+  if (!hypothesis) {
+    return (
+      <div style={{ marginBottom: '20px' }}>
+        <div style={{ fontSize: '13px', fontWeight: 700, color: '#4b5563', textTransform: 'uppercase', marginBottom: '8px' }}>
+          Root Cause Hypothesis
+        </div>
+        <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>No hypothesis available for this incident.</p>
+      </div>
+    );
+  }
+
+  const confStyle = getConfidenceStyle(hypothesis.confidence);
+
+  return (
+    <div style={{ marginBottom: '20px' }}>
+      <div style={{ fontSize: '13px', fontWeight: 700, color: '#4b5563', textTransform: 'uppercase', marginBottom: '8px' }}>
+        Root Cause Hypothesis
+      </div>
+      <div
+        style={{
+          background: '#f9fafb',
+          border: '1px solid #e5e7eb',
+          borderRadius: '6px',
+          padding: '16px',
+        }}
+      >
+        <div style={{ marginBottom: '10px' }}>
+          <span style={{ fontSize: '13px', color: '#6b7280' }}>Root Cause Service: </span>
+          <strong style={{ color: '#111827' }}>
+            {hypothesis.root_cause_service || 'Not specified'}
+          </strong>
+        </div>
+
+        <div style={{ marginBottom: '10px' }}>
+          <span style={{ fontSize: '13px', color: '#6b7280' }}>Cascade Path: </span>
+          {hypothesis.cascade_path && hypothesis.cascade_path.length > 0 ? (
+            <span style={{ fontWeight: 600, color: '#4f46e5' }}>
+              {hypothesis.cascade_path.join(' ➔ ')}
+            </span>
+          ) : (
+            <span style={{ color: '#6b7280' }}>None</span>
+          )}
+        </div>
+
+        <div style={{ marginBottom: '10px' }}>
+          <span style={{ fontSize: '13px', color: '#6b7280' }}>Confidence: </span>
+          <span
+            style={{
+              fontSize: '12px',
+              fontWeight: 700,
+              padding: '2px 8px',
+              borderRadius: '4px',
+              textTransform: 'uppercase',
+              background: confStyle.background,
+              color: confStyle.color,
+            }}
+          >
+            {hypothesis.confidence || 'unknown'}
+          </span>
+        </div>
+
+        <div>
+          <span style={{ fontSize: '13px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>
+            Summary:
+          </span>
+          <p style={{ margin: 0, color: '#1f2937', fontSize: '14px', lineHeight: 1.5 }}>
+            {hypothesis.summary || 'No summary drafted.'}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PostmortemSection({ postmortem }: { readonly postmortem?: ParsedIncidentDraft['postmortem'] }) {
+  if (!postmortem) {
+    return null;
+  }
+
+  return (
+    <div style={{ marginBottom: '20px' }}>
+      <div style={{ fontSize: '13px', fontWeight: 700, color: '#4b5563', textTransform: 'uppercase', marginBottom: '8px' }}>
+        Postmortem Details
+      </div>
+      <div
+        style={{
+          background: '#f9fafb',
+          border: '1px solid #e5e7eb',
+          borderRadius: '6px',
+          padding: '16px',
+        }}
+      >
+        {postmortem.summary && (
+          <div style={{ marginBottom: '10px' }}>
+            <span style={{ fontSize: '13px', color: '#6b7280', display: 'block', marginBottom: '2px' }}>Summary:</span>
+            <p style={{ margin: 0, fontSize: '14px', color: '#1f2937' }}>{postmortem.summary}</p>
+          </div>
+        )}
+        {postmortem.impact && (
+          <div style={{ marginBottom: '10px' }}>
+            <span style={{ fontSize: '13px', color: '#6b7280', display: 'block', marginBottom: '2px' }}>Impact:</span>
+            <p style={{ margin: 0, fontSize: '14px', color: '#1f2937' }}>{postmortem.impact}</p>
+          </div>
+        )}
+        {postmortem.contributing_factors && postmortem.contributing_factors.length > 0 && (
+          <div style={{ marginBottom: '10px' }}>
+            <span style={{ fontSize: '13px', color: '#6b7280', display: 'block', marginBottom: '2px' }}>
+              Contributing Factors:
+            </span>
+            <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '14px', color: '#1f2937' }}>
+              {postmortem.contributing_factors.map((f) => (
+                <li key={f}>{f}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {postmortem.next_steps && postmortem.next_steps.length > 0 && (
+          <div>
+            <span style={{ fontSize: '13px', color: '#6b7280', display: 'block', marginBottom: '2px' }}>Next Steps:</span>
+            <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '14px', color: '#1f2937' }}>
+              {postmortem.next_steps.map((s) => (
+                <li key={s}>{s}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ClaimsSection({ claims }: { readonly claims: readonly ValidatedClaim[] }) {
   if (claims.length === 0) {
     return <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>No validator claims available.</p>;
   }
@@ -90,7 +264,7 @@ function ClaimsSection({ claims }: { claims: ValidatedClaim[] }) {
   );
 }
 
-export default function IncidentDetailPanel({ incident, draft }: IncidentDetailPanelProps) {
+export default function IncidentDetailPanel({ incident, draft }: Readonly<IncidentDetailPanelProps>) {
   return (
     <section
       aria-labelledby="incident-detail-heading"
@@ -121,161 +295,10 @@ export default function IncidentDetailPanel({ incident, draft }: IncidentDetailP
         </span>
       </div>
 
-      {/* Blast radius */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ fontSize: '13px', fontWeight: 700, color: '#4b5563', textTransform: 'uppercase', marginBottom: '8px' }}>
-          Blast Radius ({incident.blast_radius?.length || 0} services)
-        </div>
-        {incident.blast_radius && incident.blast_radius.length > 0 ? (
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {incident.blast_radius.map((svcName) => (
-              <span
-                key={svcName}
-                style={{
-                  background: '#e0f2fe',
-                  color: '#0369a1',
-                  border: '1px solid #bae6fd',
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  fontSize: '13px',
-                  fontWeight: 500,
-                }}
-              >
-                {svcName}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>No blast radius recorded.</p>
-        )}
-      </div>
+      <BlastRadiusSection blastRadius={incident.blast_radius} />
+      <HypothesisSection hypothesis={draft?.hypothesis} />
+      <PostmortemSection postmortem={draft?.postmortem} />
 
-      {/* Root cause hypothesis */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ fontSize: '13px', fontWeight: 700, color: '#4b5563', textTransform: 'uppercase', marginBottom: '8px' }}>
-          Root Cause Hypothesis
-        </div>
-        {draft?.hypothesis ? (
-          <div
-            style={{
-              background: '#f9fafb',
-              border: '1px solid #e5e7eb',
-              borderRadius: '6px',
-              padding: '16px',
-            }}
-          >
-            <div style={{ marginBottom: '10px' }}>
-              <span style={{ fontSize: '13px', color: '#6b7280' }}>Root Cause Service: </span>
-              <strong style={{ color: '#111827' }}>
-                {draft.hypothesis.root_cause_service || 'Not specified'}
-              </strong>
-            </div>
-
-            <div style={{ marginBottom: '10px' }}>
-              <span style={{ fontSize: '13px', color: '#6b7280' }}>Cascade Path: </span>
-              {draft.hypothesis.cascade_path && draft.hypothesis.cascade_path.length > 0 ? (
-                <span style={{ fontWeight: 600, color: '#4f46e5' }}>
-                  {draft.hypothesis.cascade_path.join(' ➔ ')}
-                </span>
-              ) : (
-                <span style={{ color: '#6b7280' }}>None</span>
-              )}
-            </div>
-
-            <div style={{ marginBottom: '10px' }}>
-              <span style={{ fontSize: '13px', color: '#6b7280' }}>Confidence: </span>
-              <span
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  textTransform: 'uppercase',
-                  background:
-                    draft.hypothesis.confidence === 'high'
-                      ? '#dcfce7'
-                      : draft.hypothesis.confidence === 'medium'
-                      ? '#fef3c7'
-                      : '#f3f4f6',
-                  color:
-                    draft.hypothesis.confidence === 'high'
-                      ? '#166534'
-                      : draft.hypothesis.confidence === 'medium'
-                      ? '#92400e'
-                      : '#374151',
-                }}
-              >
-                {draft.hypothesis.confidence || 'unknown'}
-              </span>
-            </div>
-
-            <div>
-              <span style={{ fontSize: '13px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>
-                Summary:
-              </span>
-              <p style={{ margin: 0, color: '#1f2937', fontSize: '14px', lineHeight: 1.5 }}>
-                {draft.hypothesis.summary || 'No summary drafted.'}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>No hypothesis available for this incident.</p>
-        )}
-      </div>
-
-      {/* Postmortem */}
-      {draft?.postmortem && (
-        <div style={{ marginBottom: '20px' }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: '#4b5563', textTransform: 'uppercase', marginBottom: '8px' }}>
-            Postmortem Details
-          </div>
-          <div
-            style={{
-              background: '#f9fafb',
-              border: '1px solid #e5e7eb',
-              borderRadius: '6px',
-              padding: '16px',
-            }}
-          >
-            {draft.postmortem.summary && (
-              <div style={{ marginBottom: '10px' }}>
-                <span style={{ fontSize: '13px', color: '#6b7280', display: 'block', marginBottom: '2px' }}>Summary:</span>
-                <p style={{ margin: 0, fontSize: '14px', color: '#1f2937' }}>{draft.postmortem.summary}</p>
-              </div>
-            )}
-            {draft.postmortem.impact && (
-              <div style={{ marginBottom: '10px' }}>
-                <span style={{ fontSize: '13px', color: '#6b7280', display: 'block', marginBottom: '2px' }}>Impact:</span>
-                <p style={{ margin: 0, fontSize: '14px', color: '#1f2937' }}>{draft.postmortem.impact}</p>
-              </div>
-            )}
-            {draft.postmortem.contributing_factors && draft.postmortem.contributing_factors.length > 0 && (
-              <div style={{ marginBottom: '10px' }}>
-                <span style={{ fontSize: '13px', color: '#6b7280', display: 'block', marginBottom: '2px' }}>
-                  Contributing Factors:
-                </span>
-                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '14px', color: '#1f2937' }}>
-                  {draft.postmortem.contributing_factors.map((f, i) => (
-                    <li key={i}>{f}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {draft.postmortem.next_steps && draft.postmortem.next_steps.length > 0 && (
-              <div>
-                <span style={{ fontSize: '13px', color: '#6b7280', display: 'block', marginBottom: '2px' }}>Next Steps:</span>
-                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '14px', color: '#1f2937' }}>
-                  {draft.postmortem.next_steps.map((s, i) => (
-                    <li key={i}>{s}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Validator claims */}
       <div>
         <div style={{ fontSize: '13px', fontWeight: 700, color: '#4b5563', textTransform: 'uppercase', marginBottom: '8px' }}>
           Validator Claims ({draft?.claims.length || 0})

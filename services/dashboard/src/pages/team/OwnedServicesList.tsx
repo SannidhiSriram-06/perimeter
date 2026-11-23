@@ -1,10 +1,20 @@
 import { ServiceItem } from '../../api/team';
 
 interface OwnedServicesListProps {
-  services: ServiceItem[];
+  readonly services: readonly ServiceItem[];
 }
 
-export default function OwnedServicesList({ services }: OwnedServicesListProps) {
+function getTierBadgeStyle(tier: string): { background: string; color: string } {
+  if (tier === 'critical') {
+    return { background: '#fee2e2', color: '#991b1b' };
+  }
+  if (tier === 'high') {
+    return { background: '#ffedd5', color: '#9a3412' };
+  }
+  return { background: '#f3f4f6', color: '#374151' };
+}
+
+export default function OwnedServicesList({ services }: Readonly<OwnedServicesListProps>) {
   return (
     <section style={{ marginBottom: '2rem' }} aria-labelledby="owned-services-heading">
       <h2 id="owned-services-heading" style={{ fontSize: '18px', color: '#1f2937', marginBottom: '12px' }}>
@@ -21,41 +31,42 @@ export default function OwnedServicesList({ services }: OwnedServicesListProps) 
             gap: '12px',
           }}
         >
-          {services.map((svc) => (
-            <div
-              key={svc.id}
-              data-testid={`service-card-${svc.id}`}
-              style={{
-                background: '#ffffff',
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-                padding: '16px',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-              }}
-            >
-              <div style={{ fontWeight: 600, fontSize: '15px', color: '#111827', marginBottom: '6px' }}>
-                {svc.name}
+          {services.map((svc) => {
+            const badgeStyle = getTierBadgeStyle(svc.tier);
+            return (
+              <div
+                key={svc.id}
+                data-testid={`service-card-${svc.id}`}
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  padding: '16px',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                }}
+              >
+                <div style={{ fontWeight: 600, fontSize: '15px', color: '#111827', marginBottom: '6px' }}>
+                  {svc.name}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '12px', color: '#6b7280' }}>Tier:</span>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      textTransform: 'uppercase',
+                      background: badgeStyle.background,
+                      color: badgeStyle.color,
+                    }}
+                  >
+                    {svc.tier}
+                  </span>
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '12px', color: '#6b7280' }}>Tier:</span>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    textTransform: 'uppercase',
-                    background:
-                      svc.tier === 'critical' ? '#fee2e2' : svc.tier === 'high' ? '#ffedd5' : '#f3f4f6',
-                    color:
-                      svc.tier === 'critical' ? '#991b1b' : svc.tier === 'high' ? '#9a3412' : '#374151',
-                  }}
-                >
-                  {svc.tier}
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </section>

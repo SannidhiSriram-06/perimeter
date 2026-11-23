@@ -57,8 +57,7 @@ export default function TeamPage() {
       </header>
 
       {/* Team-scoping notice banner */}
-      <div
-        role="region"
+      <section
         aria-label="Scope notice"
         style={{
           background: '#e0e7ff',
@@ -75,12 +74,12 @@ export default function TeamPage() {
       >
         <span style={{ fontWeight: 'bold' }}>ℹ️ Scope:</span>
         <span>This dashboard shows only the services and incidents owned by your team.</span>
-      </div>
+      </section>
 
       {loading && (
-        <div role="status" style={{ padding: '24px 0', color: '#6b7280', fontSize: '15px' }}>
+        <output style={{ display: 'block', padding: '24px 0', color: '#6b7280', fontSize: '15px' }}>
           Loading team dashboard...
-        </div>
+        </output>
       )}
 
       {error && (

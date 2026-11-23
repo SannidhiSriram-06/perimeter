@@ -2,16 +2,16 @@ import { Incident } from '../../api/incidents';
 import { parseIncidentDraft } from '../../api/team';
 
 interface IncidentQueueProps {
-  incidents: Incident[];
-  selectedIncidentId: string | null;
-  onSelectIncident: (id: string) => void;
+  readonly incidents: readonly Incident[];
+  readonly selectedIncidentId: string | null;
+  readonly onSelectIncident: (id: string) => void;
 }
 
 export default function IncidentQueue({
   incidents,
   selectedIncidentId,
   onSelectIncident,
-}: IncidentQueueProps) {
+}: Readonly<IncidentQueueProps>) {
   if (incidents.length === 0) {
     return (
       <section style={{ marginBottom: '2rem' }} aria-labelledby="team-incidents-heading">
@@ -46,14 +46,10 @@ export default function IncidentQueue({
           const draft = parseIncidentDraft(inc);
           const isSelected = inc.id === selectedIncidentId;
           return (
-            <div
+            <button
+              type="button"
               key={inc.id}
-              role="button"
-              tabIndex={0}
               onClick={() => onSelectIncident(inc.id)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') onSelectIncident(inc.id);
-              }}
               data-testid={`incident-item-${inc.id}`}
               style={{
                 background: isSelected ? '#f8fafc' : '#ffffff',
@@ -66,6 +62,9 @@ export default function IncidentQueue({
                 alignItems: 'center',
                 flexWrap: 'wrap',
                 gap: '12px',
+                textAlign: 'left',
+                width: '100%',
+                font: 'inherit',
               }}
             >
               <div>
@@ -100,9 +99,9 @@ export default function IncidentQueue({
                   <span
                     data-testid="draft-status-badge"
                     style={{
-                      background: '#fef3c7',
-                      color: '#92400e',
-                      border: '1px solid #fde68a',
+                      background: '#fef2f2',
+                      color: '#991b1b',
+                      border: '1px solid #fecaca',
                       padding: '4px 10px',
                       borderRadius: '6px',
                       fontSize: '12px',
@@ -117,19 +116,18 @@ export default function IncidentQueue({
                     data-testid="draft-status-badge"
                     style={{
                       background: '#f3f4f6',
-                      color: '#4b5563',
-                      border: '1px solid #e5e7eb',
+                      color: '#6b7280',
                       padding: '4px 10px',
                       borderRadius: '6px',
                       fontSize: '12px',
-                      fontWeight: 600,
+                      fontWeight: 500,
                     }}
                   >
-                    DRAFT NONE
+                    NO DRAFT
                   </span>
                 )}
               </div>
-            </div>
+            </button>
           );
         })}
       </div>

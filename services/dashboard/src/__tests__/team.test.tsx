@@ -135,13 +135,17 @@ function renderTeamPage() {
   );
 }
 
+function mockTeamApis() {
+  fetchMock.mockImplementation((url: string) => {
+    if (url.includes('/api/v1/services')) return jsonResponse(200, sampleServices);
+    if (url.includes('/api/v1/incidents')) return jsonResponse(200, sampleIncidents);
+    return jsonResponse(404, {});
+  });
+}
+
 describe('TeamPage (/team)', () => {
   it('1. Team services render correctly', async () => {
-    fetchMock.mockImplementation((url: string) => {
-      if (url.includes('/api/v1/services')) return jsonResponse(200, sampleServices);
-      if (url.includes('/api/v1/incidents')) return jsonResponse(200, sampleIncidents);
-      return jsonResponse(404, {});
-    });
+    mockTeamApis();
 
     renderTeamPage();
 
@@ -155,11 +159,7 @@ describe('TeamPage (/team)', () => {
   });
 
   it('2. Team incidents render correctly', async () => {
-    fetchMock.mockImplementation((url: string) => {
-      if (url.includes('/api/v1/services')) return jsonResponse(200, sampleServices);
-      if (url.includes('/api/v1/incidents')) return jsonResponse(200, sampleIncidents);
-      return jsonResponse(404, {});
-    });
+    mockTeamApis();
 
     renderTeamPage();
 
@@ -170,11 +170,7 @@ describe('TeamPage (/team)', () => {
   });
 
   it('3. Incident selection shows details', async () => {
-    fetchMock.mockImplementation((url: string) => {
-      if (url.includes('/api/v1/services')) return jsonResponse(200, sampleServices);
-      if (url.includes('/api/v1/incidents')) return jsonResponse(200, sampleIncidents);
-      return jsonResponse(404, {});
-    });
+    mockTeamApis();
 
     renderTeamPage();
 
@@ -192,11 +188,7 @@ describe('TeamPage (/team)', () => {
   });
 
   it('4. Blast radius renders', async () => {
-    fetchMock.mockImplementation((url: string) => {
-      if (url.includes('/api/v1/services')) return jsonResponse(200, sampleServices);
-      if (url.includes('/api/v1/incidents')) return jsonResponse(200, sampleIncidents);
-      return jsonResponse(404, {});
-    });
+    mockTeamApis();
 
     renderTeamPage();
 
@@ -207,11 +199,7 @@ describe('TeamPage (/team)', () => {
   });
 
   it('5. Flagged drafts are clearly marked', async () => {
-    fetchMock.mockImplementation((url: string) => {
-      if (url.includes('/api/v1/services')) return jsonResponse(200, sampleServices);
-      if (url.includes('/api/v1/incidents')) return jsonResponse(200, sampleIncidents);
-      return jsonResponse(404, {});
-    });
+    mockTeamApis();
 
     renderTeamPage();
 
@@ -220,11 +208,7 @@ describe('TeamPage (/team)', () => {
   });
 
   it('6. Unsupported claims show rendered_text from validation and reason', async () => {
-    fetchMock.mockImplementation((url: string) => {
-      if (url.includes('/api/v1/services')) return jsonResponse(200, sampleServices);
-      if (url.includes('/api/v1/incidents')) return jsonResponse(200, sampleIncidents);
-      return jsonResponse(404, {});
-    });
+    mockTeamApis();
 
     renderTeamPage();
 

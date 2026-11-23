@@ -75,45 +75,40 @@ describe('GET /api/v1/services — team-scoped visibility', { skip: skipWithoutD
     assert.ok(ids.includes('recommendation-engine'));
   });
 
-  test('payments-team member (100101) sees only payments-team services', async () => {
-    const token = await tokenFor('100101');
-    const res = await getServices(token);
-    assert.equal(res.status, 200);
-    const body = (await res.json()) as {
-      services: Array<{ id: string; name: string; owning_team_id: string; tier: string }>;
-    };
-    assert.equal(body.services.length, 3);
-    for (const service of body.services) {
-      assert.equal(service.owning_team_id, 'team-payments');
-    }
-    const ids = body.services.map((s) => s.id);
-    assert.ok(ids.includes('checkout-service'));
-    assert.ok(ids.includes('payment-gateway'));
-    assert.ok(ids.includes('bank-network'));
-    // Cannot see core-platform services
-    assert.ok(!ids.includes('frontend-proxy'));
-    assert.ok(!ids.includes('inventory-service'));
-    assert.ok(!ids.includes('recommendation-engine'));
-  });
+  const teamScopingCases = [
+    {
+      userId: '100101',
+      teamId: 'team-payments',
+      visible: ['checkout-service', 'payment-gateway', 'bank-network'],
+      hidden: ['frontend-proxy', 'inventory-service', 'recommendation-engine'],
+    },
+    {
+      userId: '100103',
+      teamId: 'team-core-platform',
+      visible: ['frontend-proxy', 'inventory-service', 'recommendation-engine'],
+      hidden: ['checkout-service', 'payment-gateway', 'bank-network'],
+    },
+  ];
 
-  test('core-platform member (100103) sees only core-platform services', async () => {
-    const token = await tokenFor('100103');
-    const res = await getServices(token);
-    assert.equal(res.status, 200);
-    const body = (await res.json()) as {
-      services: Array<{ id: string; name: string; owning_team_id: string; tier: string }>;
-    };
-    assert.equal(body.services.length, 3);
-    for (const service of body.services) {
-      assert.equal(service.owning_team_id, 'team-core-platform');
-    }
-    const ids = body.services.map((s) => s.id);
-    assert.ok(ids.includes('frontend-proxy'));
-    assert.ok(ids.includes('inventory-service'));
-    assert.ok(ids.includes('recommendation-engine'));
-    // Cannot see payments-team services
-    assert.ok(!ids.includes('checkout-service'));
-    assert.ok(!ids.includes('payment-gateway'));
-    assert.ok(!ids.includes('bank-network'));
-  });
+  for (const tc of teamScopingCases) {
+    test(`team member (${tc.userId}) sees only ${tc.teamId} services`, async () => {
+      const token = await tokenFor(tc.userId);
+      const res = await getServices(token);
+      assert.equal(res.status, 200);
+      const body = (await res.json()) as {
+        services: Array<{ id: string; name: string; owning_team_id: string; tier: string }>;
+      };
+      assert.equal(body.services.length, tc.visible.length);
+      for (const service of body.services) {
+        assert.equal(service.owning_team_id, tc.teamId);
+      }
+      const ids = body.services.map((s) => s.id);
+      for (const expectedId of tc.visible) {
+        assert.ok(ids.includes(expectedId));
+      }
+      for (const hiddenId of tc.hidden) {
+        assert.ok(!ids.includes(hiddenId));
+      }
+    });
+  }
 });
