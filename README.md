@@ -28,37 +28,38 @@ flowchart LR
 
     classDef built fill:#dcfce7,stroke:#16a34a,color:#14532d
     classDef planned fill:#f1f5f9,stroke:#64748b,stroke-dasharray:4 3,color:#334155
-    class BFF,Graph,Comp,LLM,Check built
-    class Dash,Router,Tele planned
+    class BFF,Graph,Comp,LLM,Check,Dash,Router built
+    class Tele planned
 ```
 
-Green components exist in the repository today and run end to end on mock telemetry. Grey components are planned (the dashboard has a login shell only). See [docs/design/Event_Store_Design.md](docs/design/Event_Store_Design.md) for the planned event store.
+Green components exist in the repository today and run end to end on mock telemetry. The dashboard covers draft review, the team directory and a team incident view; the on-call router scores and pairs responders but is not yet wired into the alert flow. Grey components are planned (Telegram paging of real incidents). See [docs/design/Event_Store_Design.md](docs/design/Event_Store_Design.md) for the planned event store.
 
 ## Status
 
-Last audited 2026-11-08 (`main` @ `e2e34d7`): engine 177 tests, BFF 45 tests against Postgres, dashboard 8 tests, all passing; engine coverage 99%. About 40% of the proposal's scope is built. Everything the engine reasons about is still **mock telemetry**: there is no trace store or event store yet.
+Last updated 2026-11-23 (`main` @ `a58fff1`). Everything the engine reasons about is still **mock telemetry**: there is no trace store or event store yet, so benchmark "passes" are mock against mock and are not accuracy results.
 
 | Component | Status |
 | :--- | :--- |
 | Service dependency graph and BFS blast radius (upstream, downstream, both) | Built, tested |
 | Mock OpenTelemetry spans, logs, metrics and alert fixtures | Built |
 | Alert webhook (BFF): secret-protected, calls the engine, stores incidents, starts the draft | Built, tested. Known gaps: no de-duplication or resolve handling, no retry |
-| Correlation engine HTTP API (`POST /correlate`, `POST /draft`, `GET /health`) | Built, tested. No auth or span-type checks yet |
-| Signal compressor (rank evidence, trim to a token budget) | Built, tested (`services/correlation_engine/src/compressor`). Runs on fixture logs and metrics |
+| Correlation engine HTTP API (`POST /correlate`, `POST /draft`, `POST /route`, `GET /health`) | Built, tested. No auth on engine endpoints |
+| Signal compressor (rank evidence, trim to a token budget) | Built, tested. Runs on fixture logs and metrics |
 | LLM root-cause draft and fact-checking validator | Built, tested; run against Groq (`openai/gpt-oss-120b`, needs `GROQ_API_KEY`). Claim text is rendered from the checked fields. Free-tier rate limits can leave an incident without a draft |
+| On-call router: scoring, mixed-seniority pairing, `POST /route` | Built, tested. Not yet called by the alert flow |
 | IAM login (scrypt) and role-scoped Team Directory API (BFF) | Built, tested against Postgres |
-| Incidents API: `GET /api/v1/incidents`, admins see all, team members see their team's | Built, tested |
-| PostgreSQL schema and seed data | Built. No migrations yet |
+| Incidents API (list, edit and finalize a draft) and services API | Built, tested |
+| Evaluation results API (admin) | Built |
+| PostgreSQL schema, seed data and incident-review migration | Built |
 | Docker images and a full local Compose stack (Postgres, engine, BFF) | Built; `./scripts/demo.sh` passes |
-| Minikube bootstrap: Prometheus, Alertmanager, Grafana, OTel Collector (Helm) | Built. BFF and engine are not deployed in the cluster yet |
+| Minikube: Prometheus, Alertmanager, Grafana, OTel Collector, plus the BFF, engine and a dev Postgres via the `perimeter` Helm chart | Built. End-to-end alert delivery in the cluster not verified; no Prometheus alert rules yet |
 | CI: tests with coverage gate, lint, security scans, image builds | Built |
-| Chaos scenarios, ground truth, benchmark scorer, execution harness | Built; only the offline dry-run has been run (mock against mock, not an accuracy result) |
-| React dashboard shell: Vite, login, role-guarded routes | Built, tested. The Admin and Team pages are placeholders |
-| Dashboard screens (incident list, blast radius, claims, leave, directory) | Planned (wireframes in `docs/wireframes`) |
-| Edit and finalize a draft (BFF endpoint and UI) | Planned |
-| On-call router and Telegram bot | Planned |
+| Chaos scenarios, ground truth, benchmark scorer, execution harness | Built; only the offline dry-run has produced results. A live run was attempted and stopped (see [the report](docs/evaluation/Live_Chaos_Execution_Report.md)) |
+| Six instrumented test microservices and load generator | Built |
+| React dashboard: login, role guards, evaluation results, draft edit-and-finalize, team directory and leave, team incident view | Built, tested. No admin incident list or blast-radius graph yet; the review page is reached by URL |
+| Telegram bot | Test sender only (`scripts/telegram_hello.py`); paging of real incidents is planned |
 | Raw event store (MongoDB design merged) and event fetcher | Planned (design only) |
-| Live chaos run on instrumented test services; measured accuracy | Planned |
+| Live chaos run feeding real spans to the engine; measured accuracy | Planned |
 | Terraform, ArgoCD, Vault, ECR, RDS and DynamoDB deployment | Planned |
 
 ## Quick start
@@ -101,6 +102,21 @@ docker compose --env-file .env -f deploy/docker-compose.yml up -d --build
 
 Demo logins use the seeded users (`10001` admin, `100101` team member) with the dev-only password `perimeter-dev`. See [deploy/README.md](deploy/README.md) for the database details.
 
+### Run everything locally and open the dashboard
+
+```bash
+./scripts/demo.sh                      # Postgres, engine and BFF in Docker, plus one test alert
+cd services/dashboard && npm ci && npm run dev    # dashboard at http://localhost:5173
+```
+
+| What | URL |
+| :--- | :--- |
+| Dashboard | http://localhost:5173 (use `localhost`, not `127.0.0.1`, because of CORS) |
+| BFF API | http://localhost:3001 |
+| Correlation engine | http://localhost:8000 (`/docs` for the interactive API) |
+
+Log in with ID `10001` (admin) or `100101` (team member), password `perimeter-dev`. Admin pages: `/admin` (home), `/admin/directory`, `/admin/evaluation`, `/admin/incidents/<incident id>/review`. Team members land on `/team`. The incident id is printed by the webhook call in `demo.sh`. Stop everything with `docker compose --env-file .env -f deploy/docker-compose.yml down`.
+
 Build the alert webhook service:
 
 ```bash
@@ -113,9 +129,10 @@ npm run build
 
 ```
 services/
-  correlation_engine/   Python (FastAPI): graph + BFS (src/graph), compressor (src/compressor), LLM draft + validator (src/llm), mock telemetry (src/mock), HTTP API (src/api.py), tests, Dockerfile
-  bff-server/           Node.js: alert webhook (src/alerts), IAM login (src/auth), Team Directory (src/teams), incidents (src/incidents), tests, Dockerfile
-  dashboard/            React + Vite + TypeScript shell: login, role guards, placeholder pages, tests
+  correlation_engine/   Python (FastAPI): graph + BFS (src/graph), compressor (src/compressor), LLM draft + validator (src/llm), on-call router (src/router), mock telemetry (src/mock), HTTP API (src/api.py), tests, Dockerfile
+  bff-server/           Node.js: alert webhook (src/alerts), IAM login (src/auth), Team Directory (src/teams), incidents (src/incidents), services (src/services), evaluation (src/evaluation), tests, Dockerfile
+  dashboard/            React + Vite + TypeScript: login, role guards, admin (directory, evaluation, draft review) and team pages, tests
+  test-services/        Six instrumented FastAPI services and a load generator for chaos runs
 evaluation/
   chaos/                Chaos Mesh manifests (pod kill, network delay, stress)
   benchmark/            Ground truth, scorer, offline results
@@ -123,12 +140,14 @@ evaluation/
 deploy/
   docker-compose.yml    Local stack: PostgreSQL, correlation engine, BFF
   db/init.sql           Schema and dev seed data
-  k8s/                  Minikube bootstrap (up.sh, Helm values, sample trace job)
+  k8s/                  Minikube bootstrap (up.sh, Helm values, test services)
+  helm/perimeter/       Helm chart: BFF, engine and dev Postgres for Minikube
 docs/
   llm-output-schema.md  Contract between the model, the validator and the dashboard
+  router-scoring.md     On-call router scoring spec
   telegram-bot.md       Telegram bot configuration and dispatch guide
   design/               Event_Store_Design.md
-  evaluation/           Chaos_Scenarios.md
+  evaluation/           Chaos_Scenarios.md, Live_Chaos_Execution_Report.md
   wireframes/           Dashboard wireframes (SVG)
 scripts/
   demo.sh               One-command demo
