@@ -6,6 +6,8 @@ import Login from './pages/Login';
 import AdminHome from './pages/AdminHome';
 import DirectoryPage from './pages/admin/DirectoryPage';
 import EvaluationPage from './pages/admin/EvaluationPage';
+import IncidentDetail from './pages/admin/IncidentDetail';
+import IncidentsPage from './pages/admin/IncidentsPage';
 import ReviewPage from './pages/admin/ReviewPage';
 import TeamPage from './pages/team/TeamPage';
 
@@ -22,6 +24,8 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route element={<RequireRole role="admin" />}>
           <Route path="/admin" element={<AdminHome />} />
+          <Route path="/admin/incidents" element={<IncidentsPage />} />
+          <Route path="/admin/incidents/:id" element={<IncidentDetail />} />
           <Route path="/admin/directory" element={<DirectoryPage />} />
           <Route path="/admin/evaluation" element={<EvaluationPage />} />
           <Route path="/admin/incidents/:id/review" element={<ReviewPage />} />

@@ -76,18 +76,84 @@ export interface ParsedDraft {
   status: string | null;
   draft: DraftBody | null;
   validation: Validation | null;
+  claims: Array<{ id: string; type?: string; evidence_ids?: string[] }>;
+}
+
+export interface IncidentClaim extends ClaimResult {
+  type: string;
+  evidence_ids: string[];
+}
+
+export interface ParsedIncidentDetails {
+  status: 'ok' | 'flagged' | 'none';
+  hypothesis?: Hypothesis;
+  claims: IncidentClaim[];
+  issues: DraftIssue[];
+  postmortem?: Postmortem;
 }
 
 /** Reads the stored model draft. A missing or malformed value gives an empty result instead of throwing. */
 export function parseModelDraft(text: string | null): ParsedDraft {
-  const empty: ParsedDraft = { status: null, draft: null, validation: null };
+  const empty: ParsedDraft = { status: null, draft: null, validation: null, claims: [] };
   if (!text) return empty;
   try {
-    const parsed = JSON.parse(text) as { status?: string; draft?: DraftBody; validation?: Validation };
-    return { status: parsed.status ?? null, draft: parsed.draft ?? null, validation: parsed.validation ?? null };
+    const parsed = JSON.parse(text) as {
+      status?: string;
+      draft?: DraftBody & { claims?: Array<{ id?: string; type?: string; evidence_ids?: string[] }> };
+      validation?: Validation;
+    };
+    return {
+      status: parsed.status ?? null,
+      draft: parsed.draft ?? null,
+      validation: parsed.validation ?? null,
+      claims: Array.isArray(parsed.draft?.claims)
+        ? parsed.draft.claims.filter(
+            (claim): claim is { id: string; type?: string; evidence_ids?: string[] } => typeof claim.id === 'string',
+          )
+        : [],
+    };
   } catch {
     return empty;
   }
+}
+
+/** Uses validator-rendered claim text only; model claims supply citation metadata, never display text. */
+export function parseIncidentDetails(incident: Incident): ParsedIncidentDetails {
+  const parsed = parseModelDraft(incident.root_cause_draft);
+  const validationClaims = Array.isArray(parsed.validation?.claims)
+    ? parsed.validation.claims.filter(
+        (claim) => typeof claim.id === 'string' && typeof claim.rendered_text === 'string',
+      )
+    : [];
+  const modelClaims = new Map(parsed.claims.map((claim) => [claim.id, claim]));
+  const issues = Array.isArray(parsed.validation?.issues) ? parsed.validation.issues : [];
+  const timelineWarnings = Array.isArray(parsed.validation?.timeline_warnings)
+    ? parsed.validation.timeline_warnings
+    : [];
+  const reviewed = incident.reviewed_draft ?? {};
+  const hypothesis = { ...parsed.draft?.hypothesis, ...reviewed.hypothesis };
+  const postmortem = { ...parsed.draft?.postmortem, ...reviewed.postmortem };
+  const hasDraft = parsed.draft !== null || parsed.status === 'ok' || parsed.status === 'flagged';
+  const flagged =
+    parsed.status === 'flagged' ||
+    validationClaims.some((claim) => !claim.supported) ||
+    issues.length > 0 ||
+    timelineWarnings.length > 0;
+
+  return {
+    status: !hasDraft ? 'none' : flagged ? 'flagged' : 'ok',
+    hypothesis: Object.keys(hypothesis).length > 0 ? hypothesis : undefined,
+    claims: validationClaims.map((claim) => {
+      const modelClaim = modelClaims.get(claim.id);
+      return {
+        ...claim,
+        type: modelClaim?.type ?? 'claim',
+        evidence_ids: modelClaim?.evidence_ids ?? [],
+      };
+    }),
+    issues,
+    postmortem: Object.keys(postmortem).length > 0 ? postmortem : undefined,
+  };
 }
 
 /** The draft the reviewer starts from: their earlier edits if any, else the model's draft. */
