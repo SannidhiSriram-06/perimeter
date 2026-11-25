@@ -31,9 +31,13 @@ alertmanager:
       group_interval: 1m
       repeat_interval: 4h
     receivers:
+      # The chart adds a default route for the Watchdog alert that points at a receiver named "null". Setting
+      # `receivers` replaces the chart's list, so "null" must be declared here or Alertmanager's config is invalid
+      # ("undefined receiver null used in route") and the pod is never created.
+      - name: "null"
       - name: perimeter-webhook
         webhook_configs:
-          # The BFF is not deployed in the cluster yet; until it is, deliveries fail and Alertmanager retries.
+          # The BFF runs in the cluster (Helm chart perimeter); if it is down, deliveries fail and Alertmanager retries.
           - url: http://perimeter-bff.perimeter.svc.cluster.local:3001/api/v1/alerts/webhook
             send_resolved: true
             http_config:
