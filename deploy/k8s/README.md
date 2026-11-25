@@ -40,7 +40,7 @@ The script is safe to re-run. It starts Minikube if it's stopped, installs or up
 ## Fire a test alert through Alertmanager
 
 ```bash
-kubectl -n perimeter port-forward svc/perimeter-monitoring-kube-prom-alertmanager 9093:9093 &
+kubectl -n perimeter port-forward svc/perimeter-monitoring-kube-alertmanager 9093:9093 &
 curl -s -X POST http://localhost:9093/api/v2/alerts -H 'content-type: application/json' \
   -d '[{"labels":{"alertname":"CheckoutServiceHighLatency","service":"checkout-service","severity":"critical"}}]'
 ```
