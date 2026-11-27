@@ -4,70 +4,29 @@ interface OwnedServicesListProps {
   readonly services: readonly ServiceItem[];
 }
 
-function getTierBadgeStyle(tier: string): { background: string; color: string } {
-  if (tier === 'critical') {
-    return { background: '#fee2e2', color: '#991b1b' };
-  }
-  if (tier === 'high') {
-    return { background: '#ffedd5', color: '#9a3412' };
-  }
-  return { background: '#f3f4f6', color: '#374151' };
-}
-
 export default function OwnedServicesList({ services }: Readonly<OwnedServicesListProps>) {
   return (
-    <section style={{ marginBottom: '2rem' }} aria-labelledby="owned-services-heading">
-      <h2 id="owned-services-heading" style={{ fontSize: '18px', color: '#1f2937', marginBottom: '12px' }}>
+    <section className="card" aria-labelledby="owned-services-heading">
+      <h2 id="owned-services-heading" className="eyebrow">
         Owned Services ({services.length})
       </h2>
 
       {services.length === 0 ? (
-        <p style={{ color: '#6b7280', fontStyle: 'italic' }}>No services owned by your team.</p>
+        <p className="muted">No services owned by your team.</p>
       ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-            gap: '12px',
-          }}
-        >
-          {services.map((svc) => {
-            const badgeStyle = getTierBadgeStyle(svc.tier);
-            return (
-              <div
-                key={svc.id}
-                data-testid={`service-card-${svc.id}`}
-                style={{
-                  background: '#ffffff',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  padding: '16px',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                }}
-              >
-                <div style={{ fontWeight: 600, fontSize: '15px', color: '#111827', marginBottom: '6px' }}>
-                  {svc.name}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '12px', color: '#6b7280' }}>Tier:</span>
-                  <span
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      textTransform: 'uppercase',
-                      background: badgeStyle.background,
-                      color: badgeStyle.color,
-                    }}
-                  >
-                    {svc.tier}
-                  </span>
-                </div>
+        <ul className="rows">
+          {services.map((svc) => (
+            <li key={svc.id} data-testid={`service-card-${svc.id}`} className="person">
+              <svg aria-hidden="true" width="26" height="46" viewBox="0 0 26 46" style={{ flex: 'none' }}>
+                <use href="#tower" width="120" height="320" transform="scale(0.145)" />
+              </svg>
+              <div>
+                <p><strong>{svc.name}</strong></p>
+                <p className="muted">{svc.tier} tier</p>
               </div>
-            );
-          })}
-        </div>
+            </li>
+          ))}
+        </ul>
       )}
     </section>
   );

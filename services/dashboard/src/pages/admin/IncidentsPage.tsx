@@ -1,29 +1,101 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchIncidents, parseIncidentDetails, type Incident } from '../../api/incidents';
+import { fetchIncidents, type Incident } from '../../api/incidents';
+import { Skyline } from '../../components/art';
+import EmptyState from '../../components/EmptyState';
+import { isFinal, reportState } from '../../components/reportState';
+import { PageHead, Status, teamName, useTeams } from '../../components/ui';
 
-const badgeColors = {
-  ok: { background: '#dcfce7', color: '#166534', label: 'Draft OK' },
-  flagged: { background: '#fee2e2', color: '#991b1b', label: 'Draft flagged' },
-  none: { background: '#f3f4f6', color: '#4b5563', label: 'No draft' },
-} as const;
+const FILTERS = {
+  All: () => true,
+  Open: (incident: Incident) => !isFinal(incident),
+  Flagged: (incident: Incident) => reportState(incident).tone === 'warn',
+  Finalized: isFinal,
+};
+type Filter = keyof typeof FILTERS;
 
-function DraftBadge({ incident }: { incident: Incident }) {
-  const badge = badgeColors[parseIncidentDetails(incident).status];
+function Numerals({ incidents }: Readonly<{ incidents: Incident[] }>) {
+  const tones = incidents.map((incident) => reportState(incident).tone);
+  const counts = [
+    [tones.filter((t) => t === 'warn').length, 'Needs your review', 'something to confirm'],
+    [incidents.filter(FILTERS.Open).length, 'Open', 'not yet signed off'],
+    [tones.filter((t) => t === 'pending').length, 'Without a draft', 'nothing to read yet'],
+    [incidents.filter(isFinal).length, 'Signed off', 'closed by a human'],
+  ] as const;
   return (
-    <span
-      style={{
-        display: 'inline-block',
-        padding: '3px 8px',
-        borderRadius: '999px',
-        background: badge.background,
-        color: badge.color,
-        fontSize: '12px',
-        fontWeight: 700,
-      }}
-    >
-      {badge.label}
-    </span>
+    <div className="numerals">
+      {counts.map(([count, title, note]) => (
+        <div key={title}>
+          <strong>{count}</strong>
+          <p>{title}</p>
+          <p className="note">{note}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function IncidentTable({ incidents }: Readonly<{ incidents: Incident[] }>) {
+  const teams = useTeams();
+  const [filter, setFilter] = useState<Filter>('All');
+  const [team, setTeam] = useState('');
+  const shown = incidents.filter((i) => FILTERS[filter](i) && (!team || i.owning_team_id === team));
+
+  return (
+    <>
+      <div className="toolbar">
+        <fieldset className="tabs" aria-label="Filter incidents">
+          {(Object.keys(FILTERS) as Filter[]).map((name) => (
+            <button key={name} type="button" aria-pressed={filter === name} onClick={() => setFilter(name)}>{name}</button>
+          ))}
+        </fieldset>
+        {teams.length > 0 && (
+          <label>
+            Team{' '}
+            <select value={team} onChange={(e) => setTeam(e.target.value)}>
+              <option value="">All teams</option>
+              {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </label>
+        )}
+      </div>
+      <div className="card flush scroll">
+        <table style={{ minWidth: 820 }}>
+          <thead>
+            <tr>
+              <th scope="col">Incident</th>
+              <th scope="col">Origin</th>
+              <th scope="col">Team</th>
+              <th scope="col">Affected</th>
+              <th scope="col">Report</th>
+              <th scope="col">Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map((incident) => {
+              const state = reportState(incident);
+              return (
+                <tr key={incident.id}>
+                  <td>
+                    <Link className="row-title" to={`/admin/incidents/${encodeURIComponent(incident.id)}`}>{incident.title}</Link>
+                    <span className="sub mono">{incident.id}</span>
+                  </td>
+                  <td className="mono">{incident.service_name ?? incident.alert_service_id ?? '—'}</td>
+                  <td className="muted">{teamName(teams, incident.owning_team_id)}</td>
+                  <td className="muted">{incident.blast_radius.length} services</td>
+                  <td><Status tone={state.tone}>{state.label}</Status></td>
+                  <td className="muted">{new Date(incident.created_at).toLocaleString()}</td>
+                </tr>
+              );
+            })}
+            {shown.length === 0 && (
+              <tr><td colSpan={6} className="muted">Nothing matches this filter.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      <p className="note">open a row to read the draft, check the claims and sign it off.</p>
+    </>
   );
 }
 
@@ -53,37 +125,21 @@ export default function IncidentsPage() {
 
   return (
     <section>
-      <h1>Incidents</h1>
+      <PageHead kicker="what is on fire, and what is signed off" title="Incidents">
+        <Skyline />
+      </PageHead>
       {loading && <p role="status">Loading incidents…</p>}
       {error && <p className="error" role="alert">Could not load incidents.</p>}
-      {!loading && !error && incidents.length === 0 && <p>No incidents have been recorded.</p>}
-      {!loading && !error && incidents.length > 0 && (
-        <div style={{ overflowX: 'auto', background: '#fff', border: '1px solid #dde0e4', borderRadius: '8px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ background: '#f9fafb', borderBottom: '1px solid #dde0e4' }}>
-                <th scope="col" style={{ padding: '12px 16px' }}>Incident</th>
-                <th scope="col" style={{ padding: '12px 16px' }}>Service</th>
-                <th scope="col" style={{ padding: '12px 16px' }}>Status</th>
-                <th scope="col" style={{ padding: '12px 16px' }}>Draft</th>
-                <th scope="col" style={{ padding: '12px 16px' }}>Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {incidents.map((incident) => (
-                <tr key={incident.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                  <td style={{ padding: '12px 16px' }}>
-                    <Link to={`/admin/incidents/${encodeURIComponent(incident.id)}`}>{incident.title}</Link>
-                  </td>
-                  <td style={{ padding: '12px 16px' }}>{incident.service_name ?? incident.alert_service_id ?? '—'}</td>
-                  <td style={{ padding: '12px 16px' }}>{incident.status}</td>
-                  <td style={{ padding: '12px 16px' }}><DraftBadge incident={incident} /></td>
-                  <td style={{ padding: '12px 16px' }}>{new Date(incident.created_at).toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {!loading && !error && incidents.length === 0 && (
+        <div className="plate">
+          <EmptyState title="All quiet inside the perimeter." subtitle="No incidents have been recorded." />
         </div>
+      )}
+      {!loading && !error && incidents.length > 0 && (
+        <>
+          <Numerals incidents={incidents} />
+          <IncidentTable incidents={incidents} />
+        </>
       )}
     </section>
   );

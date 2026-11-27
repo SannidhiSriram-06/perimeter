@@ -77,7 +77,7 @@ describe('Admin Incidents Pages', () => {
     await waitFor(() => {
       expect(screen.getByText('Payment Timeout Spike')).toBeInTheDocument();
     });
-    expect(screen.getByText('Draft OK')).toBeInTheDocument();
+    expect(screen.getByText('Ready')).toBeInTheDocument();
   });
 
   test('IncidentDetail renders blast radius, hypothesis, claims and postmortem', async () => {

@@ -9,6 +9,7 @@ import {
   type Team,
   type TeamMember,
 } from '../../api/directory';
+import { Avatar, PageHead } from '../../components/ui';
 
 const SENIORITY_LEVELS: Seniority[] = ['junior', 'mid', 'senior', 'lead'];
 
@@ -36,107 +37,66 @@ function MembersTable({
   }
 
   return (
-    <div style={{ overflowX: 'auto', background: '#fff', borderRadius: '8px', border: '1px solid #dde0e4' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+    <div className="card flush scroll">
+      <table style={{ minWidth: 860 }}>
         <thead>
-          <tr style={{ background: '#f9fafb', borderBottom: '1px solid #dde0e4' }}>
-            <th style={{ padding: '12px 16px' }}>User ID</th>
-            <th style={{ padding: '12px 16px' }}>Name</th>
-            <th style={{ padding: '12px 16px' }}>Seniority</th>
-            <th style={{ padding: '12px 16px' }}>Skills</th>
-            <th style={{ padding: '12px 16px' }}>On-Call Status</th>
-            <th style={{ padding: '12px 16px' }}>Leave Status</th>
-            <th style={{ padding: '12px 16px' }}>Actions</th>
+          <tr>
+            <th>Member</th>
+            <th>Seniority</th>
+            <th>Skills</th>
+            <th>On call</th>
+            <th>On leave</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {members.map((m) => (
-            <tr key={m.user_id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-              <td style={{ padding: '12px 16px', fontFamily: 'monospace' }}>{m.user_id}</td>
-              <td style={{ padding: '12px 16px', fontWeight: 500 }}>{m.name}</td>
-              <td style={{ padding: '12px 16px' }}>
-                <span
-                  style={{
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    background: '#e0e7ff',
-                    color: '#3730a3',
-                    textTransform: 'capitalize',
-                  }}
-                >
-                  {m.seniority}
-                </span>
-              </td>
-              <td style={{ padding: '12px 16px' }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                  {m.skills && m.skills.length > 0 ? (
-                    m.skills.map((s) => (
-                      <span
-                        key={s}
-                        style={{
-                          padding: '2px 6px',
-                          borderRadius: '4px',
-                          background: '#f3f4f6',
-                          color: '#374151',
-                          fontSize: '12px',
-                        }}
-                      >
-                        {s}
-                      </span>
-                    ))
-                  ) : (
-                    <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>None</span>
-                  )}
+            <tr key={m.user_id}>
+              <td>
+                <div className="person">
+                  <Avatar name={m.name} />
+                  <div>
+                    <p><strong>{m.name}</strong></p>
+                    <p className="mono muted">{m.user_id}</p>
+                  </div>
                 </div>
               </td>
-              <td style={{ padding: '12px 16px' }}>
-                <button
-                  type="button"
-                  onClick={() => onToggleOnCall(m)}
-                  aria-label={`Toggle on-call for ${m.name}`}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '4px',
-                    border: 'none',
-                    background: m.on_call_status ? '#dcfce7' : '#f3f4f6',
-                    color: m.on_call_status ? '#15803d' : '#6b7280',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {m.on_call_status ? '● On Call' : '○ Off Call'}
-                </button>
+              <td style={{ textTransform: 'capitalize' }}>{m.seniority}</td>
+              <td className="muted">
+                {m.skills && m.skills.length > 0 ? (
+                  <ul className="chips">
+                    {m.skills.map((s) => (
+                      <li key={s} className="mono">{s}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <em>None</em>
+                )}
               </td>
-              <td style={{ padding: '12px 16px' }}>
-                <button
-                  type="button"
-                  onClick={() => onRequestLeaveToggle(m)}
-                  aria-label={`Toggle leave for ${m.name}`}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '4px',
-                    border: 'none',
-                    background: m.is_on_leave ? '#fee2e2' : '#f3f4f6',
-                    color: m.is_on_leave ? '#b91c1c' : '#374151',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {m.is_on_leave ? '🏖 On Leave' : 'Active'}
-                </button>
+              <td>
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={m.on_call_status}
+                    onChange={() => onToggleOnCall(m)}
+                    aria-label={`Toggle on-call for ${m.name}`}
+                  />
+                  {m.on_call_status ? 'On call' : 'Off shift'}
+                </label>
               </td>
-              <td style={{ padding: '12px 16px' }}>
-                <button
-                  type="button"
-                  onClick={() => onStartEditing(m)}
-                  style={{
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    border: '1px solid #dde0e4',
-                    background: '#fff',
-                    cursor: 'pointer',
-                  }}
-                >
+              <td>
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={m.is_on_leave}
+                    onChange={() => onRequestLeaveToggle(m)}
+                    aria-label={`Toggle leave for ${m.name}`}
+                  />
+                  {m.is_on_leave ? 'On leave' : 'Available'}
+                </label>
+              </td>
+              <td>
+                <button type="button" onClick={() => onStartEditing(m)}>
                   Edit
                 </button>
               </td>
@@ -302,8 +262,8 @@ export default function DirectoryPage() {
 
   if (loading) {
     return (
-      <section className="content">
-        <h2>Team Directory & Leave Management</h2>
+      <section>
+        <PageHead title="Team Directory & Leave Management" />
         <p>Loading teams and directory...</p>
       </section>
     );
@@ -312,71 +272,36 @@ export default function DirectoryPage() {
   const selectedTeam = teams.find((t) => t.id === selectedTeamId);
 
   return (
-    <section className="content">
-      <h2>Team Directory & Leave Management</h2>
-      <p style={{ color: '#4b5563', marginBottom: '1.5rem' }}>
-        Manage team member assignments, toggle on-call availability, and mark scheduled leaves.
-      </p>
+    <section>
+      <PageHead
+        kicker="who is here, and who is away"
+        title="Team Directory & Leave Management"
+        lead="Manage team member assignments, toggle on-call availability, and mark scheduled leaves."
+      />
 
       {error && (
-        <div
-          role="alert"
-          style={{
-            background: '#fef2f2',
-            border: '1px solid #f87171',
-            color: '#b91c1c',
-            padding: '12px 16px',
-            borderRadius: '6px',
-            marginBottom: '1rem',
-          }}
-        >
+        <div role="alert" className="alert">
           {error}
         </div>
       )}
 
-      {successMessage && (
-        <output
-          style={{
-            display: 'block',
-            background: '#f0fdf4',
-            border: '1px solid #86efac',
-            color: '#15803d',
-            padding: '12px 16px',
-            borderRadius: '6px',
-            marginBottom: '1rem',
-          }}
-        >
-          ✓ {successMessage}
-        </output>
-      )}
+      {successMessage && <output className="success">✓ {successMessage}</output>}
 
       {/* Team Selection Tabs */}
-      <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #dde0e4', paddingBottom: '8px' }}>
-        {teams.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setSelectedTeamId(t.id)}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '6px',
-              border: selectedTeamId === t.id ? '2px solid #2563eb' : '1px solid #dde0e4',
-              background: selectedTeamId === t.id ? '#eff6ff' : '#ffffff',
-              color: selectedTeamId === t.id ? '#1d4ed8' : '#374151',
-              fontWeight: selectedTeamId === t.id ? 600 : 400,
-            }}
-          >
-            {t.name}
-          </button>
-        ))}
+      <div className="toolbar">
+        <fieldset className="tabs" aria-label="Teams">
+          {teams.map((t) => (
+            <button key={t.id} type="button" aria-pressed={selectedTeamId === t.id} onClick={() => setSelectedTeamId(t.id)}>
+              {t.name}
+            </button>
+          ))}
+        </fieldset>
       </div>
 
       {selectedTeam && (
-        <div style={{ marginTop: '1rem', marginBottom: '1rem' }}>
-          <h3 style={{ margin: '0 0 4px 0' }}>{selectedTeam.name}</h3>
-          {selectedTeam.description && (
-            <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>{selectedTeam.description}</p>
-          )}
+        <div className="card-head">
+          <h2>{selectedTeam.name}</h2>
+          {selectedTeam.description && <p>{selectedTeam.description}</p>}
         </div>
       )}
 
@@ -391,63 +316,24 @@ export default function DirectoryPage() {
 
       {/* Confirmation Modal Before Marking Someone On Leave */}
       {leaveConfirmMember && (
-        <dialog
-          open
-          aria-labelledby="confirm-leave-title"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '100%',
-            height: '100%',
-            zIndex: 100,
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              padding: '24px',
-              borderRadius: '8px',
-              maxWidth: '450px',
-              width: '90%',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-            }}
-          >
-            <h3 id="confirm-leave-title" style={{ marginTop: 0, color: '#b91c1c' }}>
-              Confirm Leave Marking
-            </h3>
+        <dialog open aria-labelledby="confirm-leave-title" className="overlay">
+          <div className="card">
+            <div className="card-head">
+              <h2 id="confirm-leave-title">Confirm Leave Marking</h2>
+            </div>
             <p>
               Are you sure you want to mark <strong>{leaveConfirmMember.name}</strong> (ID:{' '}
               {leaveConfirmMember.user_id}) as <strong>ON LEAVE</strong>?
             </p>
-            <p style={{ fontSize: '13px', color: '#6b7280' }}>
+            <p className="muted">
               Engineers on leave are strictly excluded from the on-call scoring engine and will not receive incident
               pages.
             </p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '20px' }}>
-              <button
-                type="button"
-                onClick={() => setLeaveConfirmMember(null)}
-                style={{ padding: '8px 14px', borderRadius: '4px', border: '1px solid #dde0e4', background: '#fff' }}
-              >
+            <div className="actions end">
+              <button type="button" onClick={() => setLeaveConfirmMember(null)}>
                 Cancel
               </button>
-              <button
-                type="button"
-                onClick={confirmMarkLeave}
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: '4px',
-                  border: 'none',
-                  background: '#dc2626',
-                  color: '#fff',
-                  fontWeight: 600,
-                }}
-              >
+              <button type="button" className="primary" onClick={confirmMarkLeave}>
                 Confirm Leave
               </button>
             </div>
@@ -457,43 +343,17 @@ export default function DirectoryPage() {
 
       {/* Edit Seniority & Skills Modal */}
       {editingMember && (
-        <dialog
-          open
-          aria-labelledby="edit-member-title"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '100%',
-            height: '100%',
-            zIndex: 100,
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              padding: '24px',
-              borderRadius: '8px',
-              maxWidth: '500px',
-              width: '90%',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-            }}
-          >
-            <h3 id="edit-member-title" style={{ marginTop: 0 }}>
-              Edit Member: {editingMember.name} ({editingMember.user_id})
-            </h3>
-            <div style={{ display: 'grid', gap: '16px' }}>
+        <dialog open aria-labelledby="edit-member-title" className="overlay">
+          <div className="card">
+            <div className="card-head">
+              <h2 id="edit-member-title">
+                Edit Member: {editingMember.name} ({editingMember.user_id})
+              </h2>
+            </div>
+            <div className="stack tight">
               <label>
                 <span>Seniority:</span>
-                <select
-                  value={editSeniority}
-                  onChange={(e) => setEditSeniority(e.target.value as Seniority)}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #dde0e4' }}
-                >
+                <select value={editSeniority} onChange={(e) => setEditSeniority(e.target.value as Seniority)}>
                   {SENIORITY_LEVELS.map((s) => (
                     <option key={s} value={s}>
                       {s.charAt(0).toUpperCase() + s.slice(1)}
@@ -509,37 +369,22 @@ export default function DirectoryPage() {
                   value={editSkillsText}
                   onChange={(e) => setEditSkillsText(e.target.value)}
                   placeholder="python, postgresql, distributed-systems"
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #dde0e4' }}
                 />
-                <small style={{ color: '#6b7280' }}>
-                  Lowercase letters, digits and hyphens (e.g., python, fastapi).
-                </small>
+                <small className="muted">Lowercase letters, digits and hyphens (e.g., python, fastapi).</small>
               </label>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '24px' }}>
-              <button
-                type="button"
-                onClick={() => setEditingMember(null)}
-                disabled={savingEdit}
-                style={{ padding: '8px 14px', borderRadius: '4px', border: '1px solid #dde0e4', background: '#fff' }}
-              >
+            <div className="actions end">
+              <button type="button" onClick={() => setEditingMember(null)} disabled={savingEdit}>
                 Cancel
               </button>
               <button
                 type="button"
+                className="primary"
                 onClick={() => {
                   void saveEdit();
                 }}
                 disabled={savingEdit}
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: '4px',
-                  border: 'none',
-                  background: '#2563eb',
-                  color: '#fff',
-                  fontWeight: 600,
-                }}
               >
                 {savingEdit ? 'Saving...' : 'Save Changes'}
               </button>

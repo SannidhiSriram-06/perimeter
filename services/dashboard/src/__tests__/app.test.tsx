@@ -26,7 +26,7 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 async function signIn(id: string) {
-  await userEvent.type(screen.getByLabelText('ID'), id);
+  await userEvent.type(screen.getByLabelText('User ID'), id);
   await userEvent.type(screen.getByLabelText('Password'), 'perimeter-dev');
   await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
 }
@@ -54,12 +54,12 @@ it('failed login shows one generic error and stays on the login page', async () 
   await signIn('99999');
   expect(await screen.findByRole('alert')).toHaveTextContent('Invalid credentials');
   expect(screen.queryByText(/whatever the server says/)).not.toBeInTheDocument();
-  expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument();
 });
 
 it('route guard sends anonymous users to login', async () => {
   renderAt('/admin');
-  expect(await screen.findByRole('heading', { name: /sign in/i })).toBeInTheDocument();
+  expect(await screen.findByRole('heading', { name: /welcome back/i })).toBeInTheDocument();
 });
 
 it('route guard sends a team member away from the Admin area', async () => {
@@ -72,6 +72,6 @@ it('sign out clears the session and returns to login', async () => {
   sessionStorage.setItem('perimeter.session', JSON.stringify({ token: 't', role: 'admin' }));
   renderAt('/admin');
   await userEvent.click(await screen.findByRole('button', { name: /sign out/i }));
-  await waitFor(() => expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument());
+  await waitFor(() => expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument());
   expect(sessionStorage.getItem('perimeter.session')).toBeNull();
 });

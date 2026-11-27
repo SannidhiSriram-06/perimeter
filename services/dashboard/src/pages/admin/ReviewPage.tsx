@@ -29,13 +29,14 @@ export default function ReviewPage() {
 
   return (
     <section>
-      <p><Link to="/admin">← Back to Admin</Link></p>
+      <p className="crumb"><Link to="/admin/incidents">← Back to incidents</Link></p>
       {state === 'loading' && <p role="status">Loading incident…</p>}
       {state === 'error' && <p className="error" role="alert">Could not load the incident.</p>}
       {state === 'missing' && <p>Incident not found.</p>}
       {state === 'ready' && incident && (
         <>
           <h1>{incident.title}</h1>
+          <p className="note">your edits live beside the original draft. the original is never overwritten.</p>
           <EditDraftPanel incident={incident} onSaved={setIncident} />
         </>
       )}

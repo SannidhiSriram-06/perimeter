@@ -163,8 +163,8 @@ describe('TeamPage (/team)', () => {
 
     renderTeamPage();
 
-    expect(await screen.findByText('CheckoutServiceHighLatency on checkout-service')).toBeInTheDocument();
-    expect(screen.getByText('PaymentGatewayFailure on payment-gateway')).toBeInTheDocument();
+    expect(await screen.findByTestId('incident-item-inc-001')).toHaveTextContent('CheckoutServiceHighLatency on checkout-service');
+    expect(screen.getByTestId('incident-item-inc-002')).toHaveTextContent('PaymentGatewayFailure on payment-gateway');
     expect(screen.getByText('open')).toBeInTheDocument();
     expect(screen.getByText('final')).toBeInTheDocument();
   });
@@ -177,7 +177,7 @@ describe('TeamPage (/team)', () => {
     // Default first incident details
     expect(await screen.findByText(/bank-network timed out after 4000ms/)).toBeInTheDocument();
     expect(screen.getByText('medium')).toBeInTheDocument();
-    expect(screen.getByText('checkout-service ➔ payment-gateway ➔ bank-network')).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Cascade path' })).toHaveTextContent(/checkout-service.*payment-gateway.*bank-network/);
 
     // Click second incident
     const secondCard = screen.getByTestId('incident-item-inc-002');
@@ -203,8 +203,8 @@ describe('TeamPage (/team)', () => {
 
     renderTeamPage();
 
-    expect(await screen.findByText('⚠️ DRAFT FLAGGED')).toBeInTheDocument();
-    expect(screen.getByText('✓ DRAFT OK')).toBeInTheDocument();
+    expect(await screen.findByText('Flagged for review')).toBeInTheDocument();
+    expect(screen.getByText('Checked')).toBeInTheDocument();
   });
 
   it('6. Unsupported claims show rendered_text from validation and reason', async () => {
@@ -217,9 +217,9 @@ describe('TeamPage (/team)', () => {
     expect(screen.getByText('Latency degradation initiated at 15:42:00 UTC (log-bn-01)')).toBeInTheDocument();
     expect(screen.queryByText('unverified model text 1')).not.toBeInTheDocument();
 
-    expect(screen.getByText('✗ UNSUPPORTED')).toBeInTheDocument();
+    expect(screen.getByText('Not confirmed')).toBeInTheDocument();
     expect(screen.getByText(/Timestamp outside 15m alert window/)).toBeInTheDocument();
-    expect(screen.getByText('✓ SUPPORTED')).toBeInTheDocument();
+    expect(screen.getByText('Confirmed')).toBeInTheDocument();
   });
 
   it('7. Loading state', async () => {
@@ -281,6 +281,6 @@ describe('TeamPage (/team)', () => {
     expect(screen.queryByRole('button', { name: /edit/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /finalize/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /mark as final/i })).not.toBeInTheDocument();
-    expect(screen.getByText('🔒 Read-Only')).toBeInTheDocument();
+    expect(screen.getByText('Read-only')).toBeInTheDocument();
   });
 });

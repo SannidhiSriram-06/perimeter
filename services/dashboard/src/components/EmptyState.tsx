@@ -1,5 +1,25 @@
 import React from 'react';
 
+/** Towers standing quietly under a rising sun. */
+function QuietTowers() {
+  const towers: Array<[number, number]> = [[100, 70], [240, 56], [380, 40], [520, 56], [660, 70]];
+  return (
+    <svg className="art" viewBox="0 0 900 200" aria-hidden="true">
+      <g filter="url(#rough)">
+        <g fill="none" stroke="#B8380F" strokeWidth="1.8">
+          <path d="M330 190 A120 120 0 0 1 570 190" />
+          <path d="M300 190 A150 150 0 0 1 600 190" strokeDasharray="3 7" />
+        </g>
+        {towers.map(([x, y]) => (
+          <use key={x} href="#tower" width="120" height="320" transform={`translate(${x} ${y}) scale(0.38)`} />
+        ))}
+        <rect x="0" y="191" width="900" height="9" fill="#FBF9F3" />
+        <path d="M60 190 H840" stroke="#1B1A17" strokeWidth="2.4" />
+      </g>
+    </svg>
+  );
+}
+
 export interface EmptyStateProps {
   readonly title?: string;
   readonly subtitle?: string;
@@ -35,190 +55,39 @@ export default function EmptyState({
   roleContext,
   children,
 }: Readonly<EmptyStateProps>) {
-  const showMetrics = Boolean(
-    monitoredServices || firingAlerts !== undefined || traceCorrelation || routerOnCall
-  );
+  const metrics = [
+    { label: 'MONITORED SERVICES', value: monitoredServices || undefined, status: servicesStatus },
+    { label: 'FIRING ALERTS', value: firingAlerts, status: alertsStatus },
+    { label: 'TRACE CORRELATION', value: traceCorrelation || undefined, status: engineStatus },
+    { label: 'ROUTER & ON-CALL', value: routerOnCall || undefined, status: teamsCovered },
+  ].filter((metric) => metric.value !== undefined);
 
   return (
-    <output
-      aria-label={title}
-      style={{
-        display: 'block',
-        background: '#1e293b',
-        color: '#f8fafc',
-        borderRadius: '8px',
-        border: '1px solid #334155',
-        padding: '32px 24px',
-        textAlign: 'center',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -2px rgba(0, 0, 0, 0.2)',
-      }}
-    >
-      {/* Healthy Shield Graphic */}
-      <div
-        style={{
-          width: '72px',
-          height: '72px',
-          margin: '0 auto 16px auto',
-          borderRadius: '50%',
-          background: '#064e3b',
-          border: '2px solid #10b981',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <svg
-          width="36"
-          height="36"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#4ade80"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-      </div>
+    <output aria-label={title} className="empty">
+      <QuietTowers />
+      <h2>{title}</h2>
+      <p>{subtitle}</p>
 
-      <h2 style={{ margin: '0 0 8px 0', fontSize: '22px', fontWeight: 700, color: '#f8fafc' }}>
-        {title}
-      </h2>
-      <p style={{ margin: showMetrics ? '0 0 24px 0' : '0 0 16px 0', color: '#94a3b8', fontSize: '14px' }}>
-        {subtitle}
-      </p>
-
-      {/* Live Health Metrics Grid (rendered only when metric props are passed) */}
-      {showMetrics && (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-            gap: '12px',
-            marginBottom: '20px',
-          }}
-        >
-          {/* Monitored Services */}
-          {monitoredServices && (
-            <div
-              style={{
-                background: '#0f172a',
-                border: '1px solid #334155',
-                borderRadius: '6px',
-                padding: '12px',
-              }}
-            >
-              <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600, marginBottom: '6px' }}>
-                MONITORED SERVICES
-              </div>
-              <div style={{ fontSize: '20px', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
-                {monitoredServices}
-              </div>
-              {servicesStatus && (
-                <div style={{ fontSize: '10px', color: '#4ade80', fontWeight: 700 }}>
-                  {servicesStatus}
-                </div>
-              )}
+      {/* Live health metrics, rendered only when metric props are passed */}
+      {metrics.length > 0 && (
+        <div className="metrics">
+          {metrics.map((metric) => (
+            <div key={metric.label}>
+              <span className="eyebrow">{metric.label}</span>
+              <strong>{metric.value}</strong>
+              {metric.status && <span className="muted">{metric.status}</span>}
             </div>
-          )}
-
-          {/* Firing Alerts */}
-          {firingAlerts !== undefined && (
-            <div
-              style={{
-                background: '#0f172a',
-                border: '1px solid #334155',
-                borderRadius: '6px',
-                padding: '12px',
-              }}
-            >
-              <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600, marginBottom: '6px' }}>
-                FIRING ALERTS
-              </div>
-              <div style={{ fontSize: '20px', fontWeight: 700, color: '#4ade80', marginBottom: '4px' }}>
-                {firingAlerts}
-              </div>
-              {alertsStatus && (
-                <div style={{ fontSize: '10px', color: '#94a3b8' }}>
-                  {alertsStatus}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Trace Correlation */}
-          {traceCorrelation && (
-            <div
-              style={{
-                background: '#0f172a',
-                border: '1px solid #334155',
-                borderRadius: '6px',
-                padding: '12px',
-              }}
-            >
-              <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600, marginBottom: '6px' }}>
-                TRACE CORRELATION
-              </div>
-              <div style={{ fontSize: '20px', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
-                {traceCorrelation}
-              </div>
-              {engineStatus && (
-                <div style={{ fontSize: '10px', color: '#4ade80', fontWeight: 700 }}>
-                  {engineStatus}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Router & On-Call */}
-          {routerOnCall && (
-            <div
-              style={{
-                background: '#0f172a',
-                border: '1px solid #334155',
-                borderRadius: '6px',
-                padding: '12px',
-              }}
-            >
-              <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600, marginBottom: '6px' }}>
-                ROUTER & ON-CALL
-              </div>
-              <div style={{ fontSize: '20px', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
-                {routerOnCall}
-              </div>
-              {teamsCovered && (
-                <div style={{ fontSize: '10px', color: '#94a3b8' }}>
-                  {teamsCovered}
-                </div>
-              )}
-            </div>
-          )}
+          ))}
         </div>
       )}
 
-      {/* Role Context Pill */}
       {roleContext && (
-        <aside
-          role="note"
-          style={{
-            background: '#0f172a',
-            border: '1px solid #334155',
-            borderRadius: '6px',
-            padding: '10px 14px',
-            marginBottom: children ? '20px' : '0',
-            fontSize: '12px',
-            color: '#cbd5e1',
-            textAlign: 'left',
-          }}
-        >
-          <span style={{ marginRight: '6px' }}>💡</span>
+        <aside role="note" className="dashed">
           <strong>Role Context:</strong> {roleContext}
         </aside>
       )}
 
-      {/* Action Controls Slot */}
-      {children && <div style={{ marginTop: '16px' }}>{children}</div>}
+      {children && <div className="slot">{children}</div>}
     </output>
   );
 }
