@@ -40,9 +40,9 @@ export default function ServicesPage() {
   return (
     <section>
       <PageHead kicker="your system, drawn by tier" title="Services" lead="Taller towers are higher tier." />
-      {!data && !error && <p role="status">Loading services…</p>}
+      {!data && !error && <output className="line">Loading services…</output>}
       {error && <p className="error" role="alert">Could not load services.</p>}
-      {data && data.services.length === 0 && <p className="dashed">No services to show.</p>}
+      {data?.services.length === 0 && <p className="dashed">No services to show.</p>}
       {data && data.services.length > 0 && (
         <>
           <div className="plate">

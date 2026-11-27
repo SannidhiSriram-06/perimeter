@@ -289,13 +289,13 @@ export default function DirectoryPage() {
 
       {/* Team Selection Tabs */}
       <div className="toolbar">
-        <div className="tabs" role="group" aria-label="Teams">
+        <fieldset className="tabs" aria-label="Teams">
           {teams.map((t) => (
             <button key={t.id} type="button" aria-pressed={selectedTeamId === t.id} onClick={() => setSelectedTeamId(t.id)}>
               {t.name}
             </button>
           ))}
-        </div>
+        </fieldset>
       </div>
 
       {selectedTeam && (

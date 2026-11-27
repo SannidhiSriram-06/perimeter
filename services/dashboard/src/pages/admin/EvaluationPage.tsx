@@ -56,9 +56,9 @@ export default function EvaluationPage() {
               <div className="card-head">
                 <h2>{run.source}</h2>
                 {run.dry_run === true && (
-                  <span role="status" className="chip root">
+                  <output className="chip root">
                     Dry run: mock data, not an accuracy result
-                  </span>
+                  </output>
                 )}
               </div>
 

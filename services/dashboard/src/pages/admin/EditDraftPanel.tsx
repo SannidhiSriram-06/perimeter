@@ -140,9 +140,9 @@ export default function EditDraftPanel({ incident, onSaved }: Props) {
       <ValidatorSummary validation={validation} />
 
       {readOnly && (
-        <p role="status" className="dashed">
+        <output className="dashed line">
           This incident is final and read-only. <button onClick={() => setReopened(true)}>Reopen for editing</button>
-        </p>
+        </output>
       )}
 
       <h3>Hypothesis</h3>
@@ -177,7 +177,7 @@ export default function EditDraftPanel({ incident, onSaved }: Props) {
       {!readOnly && confirming && (
         <div className="finalize">
           <p role="alertdialog" aria-label="Confirm finalize">
-            Mark this incident final? Team members will no longer be able to edit it.
+            Mark this incident final? Team members will no longer be able to edit it.{' '}
             <button className="primary" onClick={() => submit(true)} disabled={saving}>Confirm: mark final</button>
             <button onClick={() => setConfirming(false)}>Cancel</button>
           </p>

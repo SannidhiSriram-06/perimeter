@@ -45,10 +45,10 @@ export default function OnCallPage() {
         lead="Who is on call, off shift or away, as recorded in the team directory."
       />
       <p className="banner">
-        <strong>Perimeter does not page anyone yet.</strong>
+        <strong>Perimeter does not page anyone yet.</strong>{' '}
         The on-call router is built but not connected to alerts or to this directory.
       </p>
-      {!rota && !error && <p role="status">Loading the rota…</p>}
+      {!rota && !error && <output className="line">Loading the rota…</output>}
       {error && <p className="error" role="alert">Could not load the rota.</p>}
       {rota && (
         <div className="columns">

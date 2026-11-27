@@ -42,11 +42,11 @@ export default function Login() {
           <p className="lead">Sign in with the ID your workspace admin gave you.</p>
           <form onSubmit={onSubmit} aria-label="Sign in">
             <label>
-              User ID
+              User ID{' '}
               <input id="uid" value={id} onChange={(e) => setId(e.target.value)} inputMode="numeric" autoComplete="username" placeholder="5 or 6 digits" required />
             </label>
             <label>
-              Password
+              Password{' '}
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" placeholder="Your password" required />
             </label>
             {error && <p role="alert" className="error">{error}</p>}

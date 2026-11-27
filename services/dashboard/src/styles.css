@@ -28,7 +28,8 @@ h1, h2, h3 { margin: 0; letter-spacing: -0.03em; line-height: 1.1; }
 h1 { font-size: clamp(34px, 6vw, 60px); letter-spacing: -0.045em; line-height: 1; text-wrap: balance; overflow-wrap: anywhere; }
 h2 { font-size: 26px; }
 h3 { font-size: 18px; letter-spacing: -0.02em; }
-p { margin: 0 0 10px; }
+p, output.line { margin: 0 0 10px; }
+output { display: block; }
 a { color: var(--rust); font-weight: 600; text-decoration: none; }
 a:hover { text-decoration: underline; text-underline-offset: 4px; }
 :focus-visible { outline: 2px solid var(--rust); outline-offset: 2px; }
@@ -69,7 +70,7 @@ label { display: grid; gap: 6px; font-size: 14px; font-weight: 600; }
 label.check { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 400; }
 form { display: grid; gap: 20px; }
 
-.tabs { display: flex; flex-wrap: wrap; gap: 4px 24px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px 24px; min-width: 0; margin: 0; padding: 0; border: 0; }
 .tabs button { padding: 0; border: 0; border-bottom: 2.5px solid transparent; border-radius: 0; font-weight: 500; color: var(--body); }
 .tabs button[aria-pressed='true'] { border-bottom-color: var(--rust); font-weight: 600; color: var(--ink); }
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 36px 0 12px; }

@@ -44,14 +44,14 @@ function IncidentTable({ incidents }: Readonly<{ incidents: Incident[] }>) {
   return (
     <>
       <div className="toolbar">
-        <div className="tabs" role="group" aria-label="Filter incidents">
+        <fieldset className="tabs" aria-label="Filter incidents">
           {(Object.keys(FILTERS) as Filter[]).map((name) => (
             <button key={name} type="button" aria-pressed={filter === name} onClick={() => setFilter(name)}>{name}</button>
           ))}
-        </div>
+        </fieldset>
         {teams.length > 0 && (
           <label>
-            Team
+            Team{' '}
             <select value={team} onChange={(e) => setTeam(e.target.value)}>
               <option value="">All teams</option>
               {teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
