@@ -6,6 +6,7 @@ import {
   parseIncidentDraft,
   ServiceItem,
 } from '../../api/team';
+import { PageHead, useTeams } from '../../components/ui';
 import OwnedServicesList from './OwnedServicesList';
 import IncidentQueue from './IncidentQueue';
 import IncidentDetailPanel from './IncidentDetailPanel';
@@ -44,64 +45,33 @@ export default function TeamPage() {
     };
   }, []);
 
+  const teams = useTeams();
   const selectedIncident = incidents.find((inc) => inc.id === selectedIncidentId);
   const parsedDraft = selectedIncident ? parseIncidentDraft(selectedIncident) : null;
 
   return (
-    <div style={{ maxWidth: '1100px', margin: '0 auto', fontFamily: 'system-ui, sans-serif' }}>
-      <header style={{ marginBottom: '1.25rem' }}>
-        <h1 style={{ fontSize: '24px', margin: '0 0 6px 0', color: '#111827' }}>Team</h1>
-        <p style={{ margin: 0, color: '#4b5563', fontSize: '14px' }}>
-          Overview of your team's owned services, active incidents, and automated AI drafts.
-        </p>
-      </header>
+    <div>
+      <PageHead
+        kicker="what is yours right now"
+        title={teams[0]?.name ?? 'Team'}
+        lead="Your team's owned services, incidents and automated drafts."
+      />
 
-      {/* Team-scoping notice banner */}
-      <section
-        aria-label="Scope notice"
-        style={{
-          background: '#e0e7ff',
-          border: '1px solid #c7d2fe',
-          color: '#3730a3',
-          padding: '12px 16px',
-          borderRadius: '8px',
-          marginBottom: '1.5rem',
-          fontSize: '14px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-        }}
-      >
-        <span style={{ fontWeight: 'bold' }}>ℹ️ Scope:</span>
-        <span>This dashboard shows only the services and incidents owned by your team.</span>
+      {/* Team-scoping notice */}
+      <section aria-label="Scope notice">
+        <p className="muted" style={{ marginTop: 12 }}>This dashboard shows only the services and incidents owned by your team.</p>
       </section>
 
-      {loading && (
-        <output style={{ display: 'block', padding: '24px 0', color: '#6b7280', fontSize: '15px' }}>
-          Loading team dashboard...
-        </output>
-      )}
+      {loading && <output style={{ display: 'block' }}>Loading team dashboard...</output>}
 
       {error && (
-        <div
-          role="alert"
-          style={{
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
-            color: '#991b1b',
-            padding: '14px 18px',
-            borderRadius: '8px',
-            marginBottom: '1.5rem',
-            fontSize: '14px',
-          }}
-        >
+        <div role="alert" className="alert">
           {error}
         </div>
       )}
 
       {!loading && !error && (
-        <div>
-          <OwnedServicesList services={services} />
+        <div className="columns">
           <IncidentQueue
             incidents={incidents}
             selectedIncidentId={selectedIncidentId}
@@ -110,6 +80,9 @@ export default function TeamPage() {
           {selectedIncident && (
             <IncidentDetailPanel incident={selectedIncident} draft={parsedDraft} />
           )}
+          <aside className="side stack">
+            <OwnedServicesList services={services} />
+          </aside>
         </div>
       )}
     </div>

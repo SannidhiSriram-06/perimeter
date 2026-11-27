@@ -120,8 +120,8 @@ describe('admin incident pages', () => {
       'href',
       '/admin/incidents/incident-1',
     );
-    expect(screen.getByText('Draft flagged')).toBeInTheDocument();
-    expect(screen.getByText('Draft OK')).toBeInTheDocument();
+    expect(screen.getByText('Flagged for review')).toBeInTheDocument();
+    expect(screen.getByText('Ready')).toBeInTheDocument();
     expect(screen.getByText('No draft')).toBeInTheDocument();
   });
 

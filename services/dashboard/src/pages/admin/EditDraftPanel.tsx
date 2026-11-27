@@ -9,6 +9,7 @@ import {
   type Incident,
   type Validation,
 } from '../../api/incidents';
+import { isFinal } from '../../components/reportState';
 import { diff, LIMITS, saveErrorMessage, toForm, validate, type FormErrors, type FormState } from './draftForm';
 
 const CONFIDENCE: Confidence[] = ['low', 'medium', 'high'];
@@ -18,8 +19,6 @@ interface Props {
   /** Called with the incident the server returns after a save, so the parent shows the stored values. */
   onSaved: (incident: Incident) => void;
 }
-
-const isFinal = (incident: Incident) => incident.status === 'final' || incident.finalized_at !== null;
 
 /** Validator messages whose rule starts with one of these prefixes, shown next to the field they concern. */
 const issuesFor = (validation: Validation | null, ...prefixes: string[]): DraftIssue[] =>
@@ -68,7 +67,7 @@ function ValidatorSummary({ validation }: { validation: Validation | null }) {
     return <p>The validator supported every claim in the model draft.</p>;
   }
   return (
-    <section aria-label="Validator flags">
+    <section aria-label="Validator flags" className="banner">
       <h3>Double check these</h3>
       <ul>
         {unsupported.map((c) => (
@@ -135,13 +134,13 @@ export default function EditDraftPanel({ incident, onSaved }: Props) {
   }
 
   return (
-    <section aria-label="Edit draft">
+    <section aria-label="Edit draft" className="card edit-panel" style={{ marginTop: 24 }}>
       <h2>Review draft</h2>
       <ReviewStamp incident={incident} />
       <ValidatorSummary validation={validation} />
 
       {readOnly && (
-        <p role="status">
+        <p role="status" className="dashed">
           This incident is final and read-only. <button onClick={() => setReopened(true)}>Reopen for editing</button>
         </p>
       )}
@@ -168,17 +167,21 @@ export default function EditDraftPanel({ incident, onSaved }: Props) {
       {error && <p className="error" role="alert">{error}</p>}
 
       {!readOnly && !confirming && (
-        <p>
-          <button onClick={() => submit(false)} disabled={saving || invalid || !changed}>Save</button>{' '}
-          <button onClick={() => setConfirming(true)} disabled={saving || invalid}>Mark final</button>
-        </p>
+        <div className="finalize">
+          <p>
+            <button className="primary" onClick={() => setConfirming(true)} disabled={saving || invalid}>Mark final</button>
+            <button onClick={() => submit(false)} disabled={saving || invalid || !changed}>Save</button>
+          </p>
+        </div>
       )}
       {!readOnly && confirming && (
-        <p role="alertdialog" aria-label="Confirm finalize">
-          Mark this incident final? Team members will no longer be able to edit it.{' '}
-          <button onClick={() => submit(true)} disabled={saving}>Confirm: mark final</button>{' '}
-          <button onClick={() => setConfirming(false)}>Cancel</button>
-        </p>
+        <div className="finalize">
+          <p role="alertdialog" aria-label="Confirm finalize">
+            Mark this incident final? Team members will no longer be able to edit it.
+            <button className="primary" onClick={() => submit(true)} disabled={saving}>Confirm: mark final</button>
+            <button onClick={() => setConfirming(false)}>Cancel</button>
+          </p>
+        </div>
       )}
     </section>
   );

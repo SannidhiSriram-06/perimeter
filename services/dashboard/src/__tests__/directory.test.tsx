@@ -118,15 +118,15 @@ it('toggles on-call status directly and sends team_id', async () => {
     expect(screen.getByText('Dev Dave')).toBeInTheDocument();
   });
 
-  const onCallButton = screen.getByRole('button', { name: /Toggle on-call for Dev Dave/i });
-  expect(onCallButton).toHaveTextContent('● On Call');
+  const onCallButton = screen.getByRole('checkbox', { name: /Toggle on-call for Dev Dave/i });
+  expect(onCallButton).toBeChecked();
 
   fireEvent.click(onCallButton);
 
   await waitFor(() => {
     expect(screen.getByText(/Updated status for user 100101/i)).toBeInTheDocument();
   });
-  expect(onCallButton).toHaveTextContent('○ Off Call');
+  expect(onCallButton).not.toBeChecked();
 });
 
 it('requires confirmation before marking someone on leave', async () => {
@@ -163,8 +163,8 @@ it('requires confirmation before marking someone on leave', async () => {
     expect(screen.getByText('Dev Dave')).toBeInTheDocument();
   });
 
-  const leaveButton = screen.getByRole('button', { name: /Toggle leave for Dev Dave/i });
-  expect(leaveButton).toHaveTextContent('Active');
+  const leaveButton = screen.getByRole('checkbox', { name: /Toggle leave for Dev Dave/i });
+  expect(leaveButton).not.toBeChecked();
 
   // Click to toggle leave
   fireEvent.click(leaveButton);
@@ -188,7 +188,7 @@ it('requires confirmation before marking someone on leave', async () => {
     expect(patchCalled).toBe(true);
     expect(screen.getByText(/Updated status for user 100101/i)).toBeInTheDocument();
   });
-  expect(leaveButton).toHaveTextContent('🏖 On Leave');
+  expect(leaveButton).toBeChecked();
 });
 
 it('edits seniority and skills for a member', async () => {
@@ -269,7 +269,7 @@ it('shows 409 conflict message when team_id is ambiguous or rejected', async () 
     expect(screen.getByText('Dev Dave')).toBeInTheDocument();
   });
 
-  const onCallButton = screen.getByRole('button', { name: /Toggle on-call for Dev Dave/i });
+  const onCallButton = screen.getByRole('checkbox', { name: /Toggle on-call for Dev Dave/i });
   fireEvent.click(onCallButton);
 
   await waitFor(() => {
